@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0F1638">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Ömürlük hedefler için alışkanlık takip uygulaması">
+
+    <title>Hedeflerim - Alışkanlık Takibi</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+
+    <script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js"
+  }
+}
+</script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-logo">🎯</div>
+        <div class="splash-title">Hedeflerim</div>
+        <div class="splash-subtitle">Ömürlük alışkanlık takibi</div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="bg-gradient"></div>
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1 id="headerTitle">📊 Bugün</h1>
+                <p class="subtitle" id="headerSubtitle">Günlük özetin</p>
+            </div>
+<div class="header-actions">
+                <button class="btn-icon" id="globalSearchBtn" aria-label="Hızlı Arama">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+                <button class="btn-icon focus-timer-toggle" id="focusTimerToggleBtn" aria-label="Odak Zamanlayıcı">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="13" r="8"></circle>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="1" x2="12" y2="5"></line>
+                        <line x1="18" y1="4" x2="16" y2="6"></line>
+                        <line x1="6" y1="4" x2="8" y2="6"></line>
+                    </svg>
+                    <span class="focus-timer-badge hidden" id="focusTimerBadge"></span>
+                    <span class="focus-timer-time hidden" id="focusTimerHeaderTime"></span>
+                </button>
+                <span class="streak-risk-badge hidden" id="streakRiskBadge" title="Serin tehlikede!">🔥</span>
+                <button class="btn-icon" id="settingsBtn" aria-label="Ayarlar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Bugün</span>
+            </button>
+            <button class="tab-btn" data-tab="habits">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span>Alışkanlıklar</span>
+            </button>
+            <button class="tab-btn" data-tab="books">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                <span>Kitaplar</span>
+            </button>
+            <button class="tab-btn" data-tab="todos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <span>Listeler</span>
+            </button>
+            <button class="tab-btn" data-tab="notes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                <span>Notlar</span>
+            </button>
+            <button class="tab-btn" data-tab="progress">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                </svg>
+                <span>İlerleme</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Tab -->
+            <section class="tab-content active" id="dashboardTab">
+                <div class="dashboard-greeting" id="dashboardGreeting">
+                    <h2>Günaydın! 👋</h2>
+                    <p id="dashboardDate"></p>
+
+                    <div class="xp-container" style="margin-top: 12px;">
+                        <div class="level-info"
+                            style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.8rem; opacity:0.8;">
+                            <div>
+                                <span id="userLevel"
+                                    style="font-weight:bold; background:var(--primary); padding:2px 6px; border-radius:4px; color:white;">Lvl
+                                    1</span>
+                                <span id="userTitle" style="margin-left:5px;">Acemi</span>
+                            </div>
+                            <span id="userXP">0 / 500 XP</span>
+                        </div>
+                        <div class="xp-track"
+                            style="background:rgba(0,0,0,0.05); height:8px; border-radius:4px; overflow:hidden;">
+                            <div class="xp-bar" id="xpBar"
+                                style="background:var(--primary); width:0%; height:100%; transition:width 0.5s ease;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="daily-recap-bar" id="dailyRecapBar"></div>
+
+                <div class="mood-tracker-container" id="moodTracker">
+                    <!-- JS will render mood options here -->
+                </div>
+
+                <div class="dashboard-stats" id="dashboardStats">
+                    <!-- Stats cards will be rendered by JS -->
+                </div>
+
+                <!-- Smart Coach AI Section -->
+                <div class="ai-coach-container" id="aiCoachContainer" style="display:none;">
+                    <div class="ai-header">
+                        <div class="ai-avatar">
+                            <span style="font-size: 1.5rem;">🧠</span>
+                        </div>
+                        <div class="ai-title">
+                            <span class="ai-name">Akıllı Koç</span>
+                            <span class="ai-badge">AI Analiz</span>
+                        </div>
+                    </div>
+                    <div class="ai-message-box">
+                        <p id="aiMessage" class="typewriter-text"></p>
+                    </div>
+</div>
+
+
+                <!-- Weekly Summary Card (Shown on Sundays) -->
+                <div class="weekly-summary-card" id="weeklySummaryCard" style="display:none;">
+                    <div class="weekly-header">
+                        <span class="weekly-icon">📊</span>
+                        <h3>Haftalık Özet</h3>
+                    </div>
+                    <div class="weekly-stats" id="weeklyStats">
+                        <!-- JS will render stats here -->
+                    </div>
+                    <button class="btn-text" onclick="dismissWeeklySummary()">Kapat</button>
+                </div>
+
+                <div class="dashboard-section">
+                    <h3><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Bugünkü Alışkanlıklar</h3>
+                    <div class="dashboard-habits" id="dashboardHabits">
+                        <!-- Today's habits will be rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="dashboard-section">
+                    <h3><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Devam Eden Kitap</h3>
+                    <div class="dashboard-book" id="dashboardBook">
+                        <!-- Current book will be rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="dashboard-section">
+                    <h3><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Bekleyen Görevler</h3>
+                    <div class="dashboard-todos" id="dashboardTodos">
+                        <!-- Pending todos will be rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="dashboard-section">
+                    <h3><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Yarınki Görevler</h3>
+                    <div class="dashboard-todos" id="dashboardTomorrowTodos">
+                        <!-- Tomorrow's todos will be rendered by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Habits Tab -->
+            <section class="tab-content" id="habitsTab">
+                <div class="week-navigation">
+                    <button class="week-nav-btn" id="prevWeek">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <h2 class="week-title" id="weekTitle">Bu Hafta</h2>
+                    <button class="week-nav-btn" id="nextWeek">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Weekly Summary Stats -->
+                <div class="summary-stats" id="summaryStats">
+                    <!-- Stats will be rendered by JS -->
+                </div>
+
+                <!-- Daily Motivational Quote -->
+                <div class="quote-card" id="quoteCard">
+                    <p class="quote-text" id="quoteText">"Her gün %1 daha iyi ol."</p>
+                    <p class="quote-author" id="quoteAuthor">— James Clear</p>
+                </div>
+
+                <!-- Personal Records -->
+                <div class="records-container" id="recordsContainer">
+                    <!-- Records will be rendered by JS -->
+                </div>
+
+                <div class="habits-container" id="habitsContainer">
+                    <!-- Habits will be rendered here -->
+                </div>
+
+                <button class="fab" id="addHabitBtn" aria-label="Alışkanlık Ekle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </section>
+
+            <!-- Books Tab -->
+            <section class="tab-content" id="booksTab">
+                <div class="books-header">
+                    <h2><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Okunacak Kitaplar</h2>
+                    <div class="book-stats">
+                        <span id="bookStats">0 kitap</span>
+                    </div>
+                </div>
+
+                <div class="add-book-container" style="flex-direction: column;">
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                        <input type="text" id="bookSearchInput" placeholder="Kitap ara (Google Books)..."
+                            class="book-input">
+                        <!-- Manual add button fallback -->
+                        <button class="btn-add-book" id="addBookBtn" type="button" title="Manuel kitap ekle">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="book-add-hint">Bulamad&#305;n m&#305;? + ile manuel kitap ekleyebilirsin.</div>
+                </div>
+                <div id="searchResults" class="search-results"></div>
+
+                <div class="books-filter">
+                    <button class="filter-btn active" data-filter="all">Tümü</button>
+                    <button class="filter-btn" data-filter="reading">Okuyorum</button>
+                    <button class="filter-btn" data-filter="completed">Okudum</button>
+                </div>
+
+                <div class="books-container" id="booksContainer">
+                    <!-- Books will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Todos Tab -->
+            <section class="tab-content" id="todosTab">
+                <div class="todos-header">
+                    <h2><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Listelerim</h2>
+                    <div class="todo-stats">
+                        <span id="todoStats">0/0 tamamlandı</span>
+                    </div>
+                </div>
+
+                <div class="todos-filter" id="todoFilterBar">
+                    <button class="filter-btn active" data-todo-filter="today">Bug&#252;n</button>
+                    <button class="filter-btn" data-todo-filter="week">Bu Hafta</button>
+                    <button class="filter-btn" data-todo-filter="someday">Bir Ara</button>
+                </div>
+                <div class="add-todo-container">
+                    <input type="text" id="todoInput" placeholder="Yeni görev ekle..." class="todo-input">
+                    <select id="todoBucketSelect" class="todo-bucket-select" aria-label="Görev kategorisi">
+                        <option value="today">Bug&#252;n</option>
+                        <option value="week">Bu Hafta</option>
+                        <option value="someday">Bir Ara</option>
+                    </select>
+                    <input type="date" id="todoDueDate" class="todo-due-date" aria-label="Son tarih">
+                    <button class="btn-add-todo" id="addTodoBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="todos-container" id="todosContainer">
+                    <!-- Todos will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Notes Tab -->
+            <section class="tab-content" id="notesTab">
+                <header>
+                    <h1>Notlarım &amp; Günlüğüm</h1>
+                    <div id="notesFilterContainer" class="notes-filter-container">
+                        <button class="filter-chip active" data-note-filter="all">Tümü</button>
+                        <button class="filter-chip" data-note-filter="pinned">Sabit</button>
+                        <button class="filter-chip" data-note-filter="archived">Arşiv</button>
+                        <button class="filter-chip" data-note-filter="journal">Günlük</button>
+                        <button class="filter-chip" data-note-filter="ideas">Fikirler</button>
+                        <button class="filter-chip" data-note-filter="work">İş</button>
+                        <!-- More chips injected by JS -->
+                    </div>
+                </header>
+
+                <div class="notes-toolbar" id="notesToolbar">
+                    <input type="search" id="notesSearchInput" class="notes-search-input"
+                        placeholder="Notlarda ara (başlık veya içerik)">
+                    <div class="notes-toolbar-row">
+                        <select id="notesSortSelect" class="notes-control-select">
+                            <option value="newest">Yeni → Eski</option>
+                            <option value="oldest">Eski → Yeni</option>
+                        </select>
+                        <select id="notesDateFilterSelect" class="notes-control-select">
+                            <option value="all">Tüm Tarihler</option>
+                            <option value="today">Bugün</option>
+                            <option value="7d">Son 7 Gün</option>
+                            <option value="30d">Son 30 Gün</option>
+                            <option value="custom">Özel Aralık</option>
+                        </select>
+                    </div>
+                    <div class="notes-custom-date-range hidden" id="notesCustomDateRange">
+                        <input type="date" id="notesDateStart" class="notes-date-input">
+                        <input type="date" id="notesDateEnd" class="notes-date-input">
+                    </div>
+                    <button type="button" id="notesResetFilters" class="notes-reset-btn notes-reset-inline">Sıfırla</button>
+                    <p class="notes-result-meta" id="notesResultMeta"></p>
+                </div>
+
+                <div class="stats-card journal-summary-card" id="todayJournalCard" onclick="openTodayJournal()">
+                    <div class="stat-icon">📔</div>
+                    <div class="stat-info">
+                        <h3>Bugünün Günlüğü</h3>
+                        <p id="todayJournalPreview">Henüz yazılmadı...</p>
+                    </div>
+                    <div class="stat-value">✏️</div>
+                </div>
+
+                <div id="notesGrid" class="notes-grid">
+                    <!-- Notes will be populated here -->
+                </div>
+
+                <button class="fab fab-secondary notes-jump-fab hidden" id="notesJumpBtn" type="button"
+                    aria-label="En sona git" title="En sona git" data-dir="bottom">
+                    <span class="notes-jump-icon" aria-hidden="true">v</span>
+                </button>
+                <button class="fab" onclick="openNoteModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="width: 24px; height: 24px;">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </section>
+
+            <!-- Progress Tab -->
+            <section class="tab-content" id="progressTab">
+                <div class="progress-header">
+                    <h2>📊 Yıllık İlerleme</h2>
+                    <select id="yearSelect" class="year-select">
+                        <!-- Years will be populated -->
+                    </select>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <!-- Progress will be rendered here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Note Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="noteModalTitle">Yeni Not</h3>
+                <button class="btn-close" onclick="closeModal('noteModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <input type="text" id="noteTitle" placeholder="Başlık (Opsiyonel)" class="modal-input"
+                style="font-weight: bold; font-size: 1.1rem;">
+
+            <div class="category-selector-container">
+                <label>Kategori:</label>
+                <select id="noteCategory" class="modal-input">
+                    <option value="general">Genel</option>
+                    <option value="journal">📔 Günlük</option>
+                    <option value="ideas">💡 Fikir</option>
+                    <option value="work">💼 İş</option>
+                    <option value="personal">🏠 Kişisel</option>
+                    <option value="books">📚 Kitap Notu</option>
+                    <option value="health">💪 Sağlık</option>
+                    <option value="finance">💰 Finans</option>
+                    <option value="goals">🎯 Hedefler</option>
+                    <option value="learning">🎓 Öğrenme</option>
+                    <option value="travel">✈️ Seyahat</option>
+                </select>
+            </div>
+
+            <div class="note-color-picker">
+                <div class="color-option selected" data-color="#ffffff"
+                    style="background:#ffffff; border:1px solid #ddd;" onclick="selectNoteColor(this, '#ffffff')"></div>
+                <div class="color-option" data-color="#ffcdd2" style="background:#ffcdd2;"
+                    onclick="selectNoteColor(this, '#ffcdd2')"></div>
+                <div class="color-option" data-color="#f8bbd0" style="background:#f8bbd0;"
+                    onclick="selectNoteColor(this, '#f8bbd0')"></div>
+                <div class="color-option" data-color="#e1bee7" style="background:#e1bee7;"
+                    onclick="selectNoteColor(this, '#e1bee7')"></div>
+                <div class="color-option" data-color="#d1c4e9" style="background:#d1c4e9;"
+                    onclick="selectNoteColor(this, '#d1c4e9')"></div>
+                <div class="color-option" data-color="#c5cae9" style="background:#c5cae9;"
+                    onclick="selectNoteColor(this, '#c5cae9')"></div>
+                <div class="color-option" data-color="#b3e5fc" style="background:#b3e5fc;"
+                    onclick="selectNoteColor(this, '#b3e5fc')"></div>
+                <div class="color-option" data-color="#b2dfdb" style="background:#b2dfdb;"
+                    onclick="selectNoteColor(this, '#b2dfdb')"></div>
+                <div class="color-option" data-color="#c8e6c9" style="background:#c8e6c9;"
+                    onclick="selectNoteColor(this, '#c8e6c9')"></div>
+                <div class="color-option" data-color="#fff9c4" style="background:#fff9c4;"
+                    onclick="selectNoteColor(this, '#fff9c4')"></div>
+                <div class="color-option" data-color="#ffe0b2" style="background:#ffe0b2;"
+                    onclick="selectNoteColor(this, '#ffe0b2')"></div>
+            </div>
+
+            <div class="voice-input-container">
+                <button id="startVoiceBtn" class="voice-btn" onclick="toggleVoiceInput()">
+                    <span class="mic-icon">🎤</span> <span id="voiceBtnText">Konuşarak Yaz</span>
+                </button>
+            </div>
+
+            <textarea id="noteContent" placeholder="Notunuzu buraya yazın..." class="modal-input" rows="8"></textarea>
+
+            <div class="modal-actions">
+                <button id="deleteNoteBtn" class="delete-btn hidden" onclick="confirmDeleteNote()">Sil</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" onclick="closeModal('noteModal')">İptal</button>
+                <button class="btn btn-primary" onclick="saveNote()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Book Modal -->
+    <div id="manualBookModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manuel Kitap Ekle</h3>
+                <button class="btn-close" type="button" onclick="closeModal('manualBookModal')" aria-label="Kapat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <p class="modal-subtitle">Google Books'ta olmayan kitaplar&#305; buradan ekleyebilirsin.</p>
+
+            <input type="text" id="manualBookTitle" class="modal-input" placeholder="Kitap ad&#305;" maxlength="240">
+            <input type="text" id="manualBookAuthor" class="modal-input" placeholder="Yazar (opsiyonel)" maxlength="160">
+            <input type="number" id="manualBookTotalPages" class="modal-input" placeholder="Toplam sayfa (opsiyonel)"
+                inputmode="numeric" min="0" max="500000" step="1">
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelManualBookBtn">Iptal</button>
+                <button type="button" class="btn btn-primary" id="saveManualBookBtn">Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Habit Modal -->
+    <div class="modal" id="habitModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Yeni Alışkanlık</h3>
+                <button class="btn-close" id="closeModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="habitForm">
+                <div class="form-group">
+                    <label>Hızlı Şablonlar</label>
+                    <div class="habit-templates" id="habitTemplates">
+                        <button type="button" class="template-btn" data-name="Kitap Okuma" data-value="50"
+                            data-unit="sayfa" data-freq="daily" data-color="#8B5CF6"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Kitap</button>
+                        <button type="button" class="template-btn" data-name="Spor" data-value="30" data-unit="dakika"
+                            data-freq="daily" data-color="#EF4444">🏃 Spor</button>
+                        <button type="button" class="template-btn" data-name="Su İçme" data-value="8" data-unit="bardak"
+                            data-freq="daily" data-color="#06B6D4">💧 Su</button>
+                        <button type="button" class="template-btn" data-name="Yürüyüş" data-value="5000"
+                            data-unit="adım" data-freq="daily" data-color="#10B981">🚶 Yürüyüş</button>
+                        <button type="button" class="template-btn" data-name="Meditasyon" data-value="10"
+                            data-unit="dakika" data-freq="daily" data-color="#EC4899">🧘 Meditasyon</button>
+                        <button type="button" class="template-btn" data-name="Kodlama" data-value="2" data-unit="saat"
+                            data-freq="daily" data-color="#6366F1">💻 Kodlama</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="habitName">Alışkanlık Adı</label>
+                    <input type="text" id="habitName" placeholder="örn: Kitap Okuma" required>
+                </div>
+                <div class="form-group">
+                    <label>Hedef (opsiyonel)</label>
+                    <div class="goal-inputs">
+                        <input type="number" id="habitGoalValue" placeholder="50" min="1" class="goal-value-input">
+                        <select id="habitGoalUnit" class="goal-unit-select">
+                            <option value="">Birim seç...</option>
+                            <optgroup label="Zaman">
+                                <option value="dakika">dakika</option>
+                                <option value="saat">saat</option>
+                                <option value="gün">gün</option>
+                            </optgroup>
+                            <optgroup label="Miktar / Eğitim">
+                                <option value="sayfa">sayfa</option>
+                                <option value="soru">soru</option>
+                                <option value="kelime">kelime</option>
+                                <option value="video">video</option>
+                                <option value="bölüm">bölüm</option>
+                                <option value="adet">adet</option>
+                                <option value="kez">kez</option>
+                            </optgroup>
+                            <optgroup label="Spor / Aktivite">
+                                <option value="adım">adım</option>
+                                <option value="km">km</option>
+                                <option value="mekik">mekik</option>
+                                <option value="şınav">şınav</option>
+                                <option value="squat">squat</option>
+                                <option value="set">set</option>
+                                <option value="tekrar">tekrar</option>
+                                <option value="kg">kg</option>
+                            </optgroup>
+                            <optgroup label="Sağlık / Beslenme">
+                                <option value="bardak">bardak</option>
+                                <option value="litre">litre</option>
+                                <option value="ml">ml</option>
+                                <option value="kalori">kalori</option>
+                                <option value="porsiyon">porsiyon</option>
+                                <option value="gram">gram</option>
+                            </optgroup>
+                            <optgroup label="Diğer">
+                                <option value="cüz">cüz</option>
+                                <option value="vakit">vakit</option>
+                                <option value="parça">parça</option>
+                            </optgroup>
+                        </select>
+                        <span class="goal-slash">/</span>
+                        <select id="habitGoalFrequency" class="goal-frequency-select">
+                            <option value="daily">Günlük</option>
+                            <option value="weekly">Haftalık</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Hayat Alanı (opsiyonel)</label>
+                    <select id="habitCategory" class="goal-frequency-select">
+                        <option value="">Seçiniz...</option>
+                        <option value="health">🏃 Sağlık &amp; Fitness</option>
+                        <option value="career">💼 Kariyer &amp; İş</option>
+                        <option value="education">📚 Eğitim &amp; Gelişim</option>
+                        <option value="spiritual">🧘 Maneviyat &amp; Huzur</option>
+                        <option value="social">👥 Sosyal &amp; İlişkiler</option>
+                        <option value="creativity">🎨 Yaratıcılık &amp; Hobi</option>
+                        <option value="finance">💰 Finans &amp; Tasarruf</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Renk Seç</label>
+                    <div class="color-picker" id="colorPicker">
+                        <button type="button" class="color-option active" data-color="#8B5CF6"
+                            style="background: #8B5CF6"></button>
+                        <button type="button" class="color-option" data-color="#EC4899"
+                            style="background: #EC4899"></button>
+                        <button type="button" class="color-option" data-color="#06B6D4"
+                            style="background: #06B6D4"></button>
+                        <button type="button" class="color-option" data-color="#10B981"
+                            style="background: #10B981"></button>
+                        <button type="button" class="color-option" data-color="#F59E0B"
+                            style="background: #F59E0B"></button>
+                        <button type="button" class="color-option" data-color="#EF4444"
+                            style="background: #EF4444"></button>
+                        <button type="button" class="color-option" data-color="#6366F1"
+                            style="background: #6366F1"></button>
+                        <button type="button" class="color-option" data-color="#84CC16"
+                            style="background: #84CC16"></button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelHabit">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Ayarlar</h3>
+                <button class="btn-close" id="closeSettings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <span>Hesap &amp; Yedekleme</span>
+                </div>
+                <div class="setting-item">
+                    <span>Tema Seç</span>
+                </div>
+                <div class="theme-picker" id="themePicker">
+                    <button type="button" class="theme-option active" data-theme="" title="Varsayılan">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #667eea, #764ba2)"></span>
+                        <span class="theme-name">Varsayılan</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="ocean" title="Okyanus">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #0369A1, #0891B2)"></span>
+                        <span class="theme-name">Okyanus</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="sunset" title="Gün Batımı">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #DC2626, #EA580C)"></span>
+                        <span class="theme-name">Gün Batımı</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="forest" title="Orman">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #166534, #15803D)"></span>
+                        <span class="theme-name">Orman</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="midnight" title="Gece Yarısı">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #1E1B4B, #312E81)"></span>
+                        <span class="theme-name">Gece Yarısı</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="rose" title="Gül">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #BE185D, #DB2777)"></span>
+                        <span class="theme-name">Gül</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="lavender" title="Lavanta">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #7E22CE, #9333EA)"></span>
+                        <span class="theme-name">Lavanta</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="mint" title="Nane">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #0D9488, #14B8A6)"></span>
+                        <span class="theme-name">Nane</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="aurora" title="Kutup Işığı">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #10B981, #6366F1)"></span>
+                        <span class="theme-name">Kutup Işığı</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="coral" title="Mercan">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #F43F5E, #FF8A65)"></span>
+                        <span class="theme-name">Mercan</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="amber" title="Kehribar">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #D97706, #FBBF24)"></span>
+                        <span class="theme-name">Kehribar</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="slate" title="Grafit">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #1E293B, #64748B)"></span>
+                        <span class="theme-name">Grafit</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="pearl" title="İnci">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #E2E8F0, #FFFFFF)"></span>
+                        <span class="theme-name">İnci</span>
+                    </button>
+                    <button type="button" class="theme-option" data-theme="dark" title="Karanlık">
+                        <span class="theme-preview"
+                            style="background: linear-gradient(135deg, #0F172A, #1E293B)"></span>
+                        <span class="theme-name">Karanlık</span>
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <span>Günlük Hatırlatıcı</span>
+                    <div class="reminder-settings">
+                        <input type="time" id="reminderTime" value="20:00" class="reminder-time-input">
+                        <button class="btn btn-secondary" id="enableNotifications"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Aç</button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span>Bulut Senkronizasyonu</span>
+                    <div class="cloud-sync-container">
+                        <button class="btn btn-primary" id="googleLoginBtn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"
+                                style="margin-right: 6px;">
+                                <path
+                                    d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
+                            </svg>
+                            Giriş Yap
+                        </button>
+                        <div id="userProfile" class="user-profile hidden">
+                            <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
+                            <span id="userName"></span>
+                            <button class="btn-logout" id="googleLogoutBtn" type="button" title="Çıkış Yap"
+                                aria-label="Google hesabından çıkış yap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                <span>Çıkış</span>
+                            </button>
+                        </div>
+                        <p class="sync-status" id="syncStatus">Senkronize değil</p>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span>Senkron Durumu</span>
+                    <button class="btn btn-secondary" id="openSyncStatusBtn"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg> Aç</button>
+                </div>
+                <div class="setting-item">
+                    <span>Verileri Dışa Aktar</span>
+                    <button class="btn btn-secondary" id="exportData"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> Dışa Aktar</button>
+                </div>
+                <div class="setting-item">
+                    <span>Verileri İçe Aktar</span>
+                    <label class="btn btn-secondary" for="importData"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> İçe Aktar</label>
+                    <input type="file" id="importData" accept=".json" hidden>
+                </div>
+                <div class="setting-item">
+                    <span>Hızlı Tur</span>
+                    <button class="btn btn-secondary" id="openOnboardingBtn"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Aç</button>
+                </div>
+                <div class="setting-item">
+                    <span>Dashboard Görünümü</span>
+                    <select id="dashboardOrderSelect" class="focus-input" style="width: auto; min-width: 160px;">
+                        <option value="default">Varsayılan</option>
+                        <option value="motivation">Motivasyon Odaklı</option>
+                        <option value="productivity">Üretkenlik Odaklı</option>
+                        <option value="minimal">Minimal</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <span>Çöp Kutusu</span>
+                    <button class="btn btn-secondary" id="openTrashBtn">🗑️ Yönet</button>
+                </div>
+                <div class="setting-item danger">
+                    <span>Tüm Verileri Sil</span>
+                    <button class="btn btn-danger" id="clearData">🗑️ Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Search Modal -->
+    <div class="modal" id="syncStatusModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content sync-status-modal-content">
+            <div class="modal-header">
+                <h3>📡 Senkron Durumu</h3>
+                <button class="btn-close" id="closeSyncStatusBtn" type="button" aria-label="Kapat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="sync-status-grid" id="syncStatusGrid"></div>
+            <div class="sync-status-actions">
+                <button class="btn btn-secondary" id="copyDebugReportBtn" type="button">Raporu Kopyala</button>
+                <button class="btn btn-secondary" id="clearErrorLogBtn" type="button">Hataları Temizle</button>
+                <button class="btn btn-primary" id="forceSyncBtn" type="button">Şimdi Senkronize Et</button>
+            </div>
+            <div class="sync-status-section">
+                <h4>Son Olaylar</h4>
+                <div class="sync-status-list" id="syncEventsList"></div>
+            </div>
+            <div class="sync-status-section">
+                <h4>Son Hatalar</h4>
+                <div class="sync-status-list" id="syncErrorsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="globalSearchModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content global-search-modal-content">
+            <div class="modal-header">
+                <h3>Hızlı Arama</h3>
+                <button class="btn-close" onclick="closeModal('globalSearchModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <input type="search" id="globalSearchInput" class="modal-input" placeholder="Her yerde ara (alışkanlık, görev, kitap, not)">
+            <div id="globalSearchResults" class="global-search-results"></div>
+        </div>
+    </div>
+
+    <!-- Trash Modal -->
+    <div class="modal" id="trashModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content trash-modal-content">
+            <div class="modal-header">
+                <h3>Çöp Kutusu</h3>
+                <button class="btn-close" onclick="closeModal('trashModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <p class="trash-modal-subtitle">Silinen kayıtlar 30 gün tutulur. İstersen geri alabilirsin.</p>
+            <div id="trashList" class="trash-list"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('trashModal')">Kapat</button>
+                <button class="btn btn-danger" id="emptyTrashBtn">Çöpü Boşalt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div class="modal" id="onboardingModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content onboarding-modal-content">
+            <div class="modal-header">
+                <h3>Hoş Geldin</h3>
+                <button class="btn-close" id="skipOnboardingBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="onboarding-grid">
+                <div class="onboarding-card">
+                    <div class="onboarding-icon">🎯</div>
+                    <h4>1. Alışkanlık Ekle</h4>
+                    <p>Küçük bir hedefle başla. Günlük veya haftalık plan oluştur.</p>
+                </div>
+                <div class="onboarding-card">
+                    <div class="onboarding-icon">⚡</div>
+                    <h4>2. Hızlı Yakala</h4>
+                    <p>Sol alttaki hızlı ekle ile not, görev ve alışkanlığı tek dokunuşta aç.</p>
+                </div>
+                <div class="onboarding-card">
+                    <div class="onboarding-icon">📈</div>
+                    <h4>3. Haftalık Review</h4>
+                    <p>İlerleme sekmesinde haftanı değerlendir, bir sonraki odak noktanı belirle.</p>
+                </div>
+            </div>
+            <div class="onboarding-actions">
+                <button class="btn btn-secondary" id="onboardingLaterBtn">Sonra</button>
+                <button class="btn btn-primary" id="startOnboardingBtn">Başlayalım</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Value Input Modal -->
+    <div class="modal value-modal" id="valueInputModal">
+        <div class="modal-backdrop" onclick="document.getElementById('valueInputModal').classList.remove('active')">
+        </div>
+        <div class="modal-content value-modal-content">
+            <div class="value-modal-header">
+                <h3 id="valueInputLabel">Kitap Okuma - 26 Ara</h3>
+            </div>
+            <div class="value-input-container">
+                <input type="number" id="valueInput" class="value-number-input" min="0" placeholder="50">
+                <span class="value-unit" id="valueInputUnit">sayfa</span>
+            </div>
+            <div class="value-modal-actions">
+                <button class="btn btn-secondary" onclick="clearHabitValue()">Temizle</button>
+                <button class="btn btn-primary" onclick="saveHabitValue()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <button class="quick-capture-fab" id="quickCaptureBtn" aria-label="Hızlı Ekle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
+    <div class="quick-capture-menu hidden" id="quickCaptureMenu">
+        <button type="button" class="quick-capture-item" data-capture="habit"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Alışkanlık</button>
+        <button type="button" class="quick-capture-item" data-capture="todo"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Görev</button>
+        <button type="button" class="quick-capture-item" data-capture="note"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path><path d="M6 6h10M6 10h10"></path></svg> Not</button>
+        <button type="button" class="quick-capture-item" data-capture="mood"><svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg> Mod</button>
+    </div>
+
+    <div class="toast" id="toast">
+        <span id="toastMessage"></span>
+        <button type="button" id="toastActionBtn" class="toast-action hidden"></button>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Celebration Modal -->
+    <div class="modal" id="celebrationModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="text-align: center; justify-content: center; align-items: center;">
+            <div class="celebration-body" style="padding: 20px;">
+                <div style="font-size: 4rem; margin-bottom: 10px; animation: bounce 1s infinite;">🎉</div>
+                <h3 style="font-size: 1.5rem; margin-bottom: 10px; color: var(--text-primary);">Tebrikler!</h3>
+                <p id="celebrationMessage" style="color: var(--text-secondary); margin-bottom: 20px;">Haftalık hedefini
+                    tamamladın!</p>
+                <button class="btn btn-primary" id="closeCelebration" style="width: 100%;">Harika!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Focus Timer Overlay -->
+    <div class="focus-overlay" id="focusOverlay">
+        <div class="focus-overlay-backdrop" id="focusOverlayBackdrop"></div>
+        <div class="focus-overlay-content">
+            <div class="focus-overlay-header">
+                <span class="focus-overlay-title">&#9201; Odak Zamanlayıcı</span>
+                <button type="button" class="focus-overlay-close" id="focusOverlayCloseBtn" aria-label="Kapat">&times;</button>
+            </div>
+            <div class="focus-timer-card" id="focusTimerCard">
+                <!-- Focus timer will be rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="src/config/firebase-config.js"></script>
+    <script type="module" src="src/utils/constants.js"></script>
+    <script type="module" src="src/utils/helpers.js"></script>
+    <script type="module" src="src/services/firebase.js"></script>
+    <script type="module" src="src/services/auth.js"></script>
+    <script type="module" src="src/services/dataLayer.js"></script>
+    <script type="module" src="src/services/sync.js"></script>
+    <script type="module" src="src/services/storage.js"></script>
+    <script type="module" src="src/state/store.js"></script>
+    <script type="module" src="src/components/focus-engine.js"></script>
+    <script type="module" src="src/components/focus-stats.js"></script>
+    <script type="module" src="src/components/focus-ui.js"></script>
+    <script type="module" src="src/components/focus.js"></script>
+    <script type="module" src="src/components/modals.js"></script>
+    <script type="module" src="src/components/dashboard.js"></script>
+    <script type="module" src="src/components/habits.js"></script>
+    <script type="module" src="src/components/settings.js"></script>
+    <script type="module" src="src/components/todos.js"></script>
+    <script type="module" src="src/components/books.js"></script>
+    <script type="module" src="src/components/notes.js"></script>
+    <script type="module" src="src/components/stats.js"></script>
+    <script type="module" src="src/components/progress.js"></script>
+    <script type="module" src="src/components/app.js"></script>
+</body>
+
+</html>
+
+

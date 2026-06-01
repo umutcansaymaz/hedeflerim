@@ -1,0 +1,17 @@
+{
+  "name": "hedeflerim",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0",
+    "@playwright/test": "^1.44.0",
+    "serve": "^14.2.0"
+  }
+}

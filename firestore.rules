@@ -1,0 +1,383 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId && (
+        request.auth.token.email == 'you@example.com'
+      );
+    }
+
+    function isShortString(value, maxLen) {
+      return value is string && value.size() <= maxLen;
+    }
+
+    function validSettings(settings) {
+      return settings is map
+        && settings.keys().hasOnly([
+          'theme',
+          'notificationsEnabled',
+          'reminderTime',
+          'smartReminderEnabled',
+          'lastFixedReminderKey',
+          'lastSmartReminderDate',
+          'lastWeeklySummaryDismissed',
+          'focusWeeklyGoalMinutes',
+          'focusSoundEnabled',
+          'annualGoalValue',
+          'annualGoalUnit',
+          'dashboardOrder'
+        ])
+        && (!('theme' in settings) || isShortString(settings.theme, 32))
+        && (!('notificationsEnabled' in settings) || settings.notificationsEnabled is bool)
+        && (!('reminderTime' in settings) || (
+          settings.reminderTime is string &&
+          settings.reminderTime.matches('^([01]\\d|2[0-3]):([0-5]\\d)$')
+        ))
+        && (!('smartReminderEnabled' in settings) || settings.smartReminderEnabled is bool)
+        && (!('lastFixedReminderKey' in settings) || isShortString(settings.lastFixedReminderKey, 64))
+        && (!('lastSmartReminderDate' in settings) || (
+          settings.lastSmartReminderDate is string
+          && settings.lastSmartReminderDate.size() <= 32
+          && (settings.lastSmartReminderDate == '' || settings.lastSmartReminderDate.matches('^\\d{4}-\\d{2}-\\d{2}$'))
+        ))
+        && (!('focusSoundEnabled' in settings) || settings.focusSoundEnabled is bool)
+        && (!('lastWeeklySummaryDismissed' in settings) || (
+          settings.lastWeeklySummaryDismissed is string
+          && settings.lastWeeklySummaryDismissed.size() <= 32
+          && (settings.lastWeeklySummaryDismissed == '' || settings.lastWeeklySummaryDismissed.matches('^\\d{4}-\\d{2}-\\d{2}$'))
+        ))
+        && (!('focusWeeklyGoalMinutes' in settings) || (
+          settings.focusWeeklyGoalMinutes is int
+          && settings.focusWeeklyGoalMinutes >= 0
+          && settings.focusWeeklyGoalMinutes <= 12000
+        ))
+        && (!('annualGoalValue' in settings) || (
+          settings.annualGoalValue is int
+          && settings.annualGoalValue >= 0
+          && settings.annualGoalValue <= 100000000
+        ))
+        && (!('annualGoalUnit' in settings) || (
+          settings.annualGoalUnit is string
+          && settings.annualGoalUnit.size() <= 24
+        ))
+        && (!('dashboardOrder' in settings) || (
+          settings.dashboardOrder is string &&
+          settings.dashboardOrder in ['default', 'motivation', 'productivity', 'minimal']
+        ));
+    }
+
+    function validCloudRoot() {
+      return request.resource.data.keys().hasAll(['schemaVersion'])
+        && request.resource.data.schemaVersion is int
+        && request.resource.data.schemaVersion >= 1
+        && request.resource.data.schemaVersion <= 2
+        && (!('lastClientSyncAt' in request.resource.data) || isShortString(request.resource.data.lastClientSyncAt, 40))
+        && (!('counters' in request.resource.data) || (
+          request.resource.data.counters is map &&
+          request.resource.data.counters.keys().hasOnly(['habits', 'todos', 'books', 'notes', 'focusSessions']) &&
+          (!('habits' in request.resource.data.counters) || (
+            request.resource.data.counters.habits is int &&
+            request.resource.data.counters.habits >= 0
+          )) &&
+          (!('todos' in request.resource.data.counters) || (
+            request.resource.data.counters.todos is int &&
+            request.resource.data.counters.todos >= 0
+          )) &&
+          (!('books' in request.resource.data.counters) || (
+            request.resource.data.counters.books is int &&
+            request.resource.data.counters.books >= 0
+          )) &&
+          (!('notes' in request.resource.data.counters) || (
+            request.resource.data.counters.notes is int &&
+            request.resource.data.counters.notes >= 0
+          )) &&
+          (!('focusSessions' in request.resource.data.counters) || (
+            request.resource.data.counters.focusSessions is int &&
+            request.resource.data.counters.focusSessions >= 0
+          ))
+        ))
+        && (!('app' in request.resource.data) || (
+          request.resource.data.app is map &&
+          request.resource.data.app.keys().hasOnly(['source', 'version']) &&
+          (!('source' in request.resource.data.app) || isShortString(request.resource.data.app.source, 24)) &&
+          (!('version' in request.resource.data.app) || isShortString(request.resource.data.app.version, 24))
+        ))
+        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt == request.time);
+    }
+
+    function validStateDoc() {
+      return request.resource.data.keys().hasOnly(['settings', 'weeklyReview', 'moods', 'xp', 'level', 'achievements', 'updatedAt'])
+        && validSettings(request.resource.data.settings)
+        && (!('weeklyReview' in request.resource.data) || (
+          request.resource.data.weeklyReview is map &&
+          request.resource.data.weeklyReview.keys().size() <= 260
+        ))
+        && request.resource.data.moods is map
+        && request.resource.data.moods.keys().size() <= 2500
+        && request.resource.data.xp is int
+        && request.resource.data.xp >= 0
+        && request.resource.data.xp <= 2000000000
+        && request.resource.data.level is int
+        && request.resource.data.level >= 1
+        && request.resource.data.level <= 100000
+        && request.resource.data.achievements is list
+        && request.resource.data.achievements.size() <= 500
+        && request.resource.data.updatedAt is string
+        && request.resource.data.updatedAt.size() <= 40;
+    }
+
+    function validMigrationDoc() {
+      return request.resource.data.keys().hasOnly(['legacyMigrated', 'sourceSchemaVersion', 'migratedAt', 'updatedAt'])
+        && request.resource.data.legacyMigrated is bool
+        && request.resource.data.sourceSchemaVersion is int
+        && request.resource.data.sourceSchemaVersion >= 1
+        && request.resource.data.sourceSchemaVersion <= 2
+        && request.resource.data.migratedAt == request.time
+        && request.resource.data.updatedAt is string
+        && request.resource.data.updatedAt.size() <= 40;
+    }
+
+    function validGoal(goal) {
+      return goal is map
+        && goal.keys().hasOnly(['value', 'unit', 'frequency'])
+        && goal.value is number
+        && goal.value >= 0
+        && goal.value <= 100000000
+        && goal.unit is string
+        && goal.unit.size() <= 32
+        && goal.frequency in ['daily', 'weekly'];
+    }
+
+    function validHabitDoc(habitId) {
+      return request.resource.data.keys().hasOnly(['id', 'name', 'color', 'completions', 'category', 'goal', 'createdAt', 'updatedAt'])
+        && request.resource.data.id == habitId
+        && isShortString(request.resource.data.name, 120)
+        && isShortString(request.resource.data.color, 16)
+        && request.resource.data.completions is map
+        && request.resource.data.completions.keys().size() <= 4000
+        && (!('category' in request.resource.data) ||
+          request.resource.data.category == null ||
+          isShortString(request.resource.data.category, 40))
+        && (!('goal' in request.resource.data) ||
+          request.resource.data.goal == null ||
+          validGoal(request.resource.data.goal))
+        && (!('createdAt' in request.resource.data) || isShortString(request.resource.data.createdAt, 40))
+        && (!('updatedAt' in request.resource.data) || isShortString(request.resource.data.updatedAt, 40));
+    }
+
+    function validTodoDoc(todoId) {
+      return request.resource.data.keys().hasOnly(['id', 'text', 'completed', 'bucket', 'dueDate', 'createdAt', 'updatedAt'])
+        && request.resource.data.id == todoId
+        && isShortString(request.resource.data.text, 500)
+        && request.resource.data.completed is bool
+        && (!('bucket' in request.resource.data) || request.resource.data.bucket in ['today', 'week', 'someday'])
+        && (!('dueDate' in request.resource.data) || (
+          request.resource.data.dueDate is string
+          && request.resource.data.dueDate.size() <= 10
+          && (request.resource.data.dueDate == '' || request.resource.data.dueDate.matches('^\\d{4}-\\d{2}-\\d{2}$'))
+        ))
+        && isShortString(request.resource.data.createdAt, 40)
+        && (!('updatedAt' in request.resource.data) || isShortString(request.resource.data.updatedAt, 40));
+    }
+
+    function validBookDoc(bookId) {
+      return request.resource.data.keys().hasOnly(['id', 'title', 'author', 'coverUrl', 'totalPages', 'currentPage', 'dailyGoalPages', 'dailyReadLog', 'status', 'completed', 'createdAt', 'updatedAt'])
+        && request.resource.data.id == bookId
+        && isShortString(request.resource.data.title, 240)
+        && isShortString(request.resource.data.author, 160)
+        && isShortString(request.resource.data.coverUrl, 2048)
+        && request.resource.data.totalPages is int
+        && request.resource.data.currentPage is int
+        && request.resource.data.totalPages >= 0
+        && request.resource.data.totalPages <= 500000
+        && request.resource.data.currentPage >= 0
+        && request.resource.data.currentPage <= 500000
+        && (!('dailyGoalPages' in request.resource.data) || (
+          request.resource.data.dailyGoalPages is int
+          && request.resource.data.dailyGoalPages >= 0
+          && request.resource.data.dailyGoalPages <= 5000
+        ))
+        && (!('dailyReadLog' in request.resource.data) || (
+          request.resource.data.dailyReadLog is map
+          && request.resource.data.dailyReadLog.keys().size() <= 365
+        ))
+        && request.resource.data.status in ['pending', 'reading', 'completed']
+        && request.resource.data.completed is bool
+        && isShortString(request.resource.data.createdAt, 40)
+        && (!('updatedAt' in request.resource.data) || isShortString(request.resource.data.updatedAt, 40));
+    }
+
+    function validNoteDoc(noteId) {
+      return request.resource.data.keys().hasOnly(['id', 'title', 'content', 'category', 'color', 'pinned', 'archived', 'createdAt', 'updatedAt'])
+        && request.resource.data.id == noteId
+        && isShortString(request.resource.data.title, 240)
+        && isShortString(request.resource.data.content, 50000)
+        && isShortString(request.resource.data.category, 40)
+        && isShortString(request.resource.data.color, 16)
+        && (!('pinned' in request.resource.data) || request.resource.data.pinned is bool)
+        && (!('archived' in request.resource.data) || request.resource.data.archived is bool)
+        && isShortString(request.resource.data.createdAt, 40)
+        && isShortString(request.resource.data.updatedAt, 40);
+    }
+
+    function validFocusSessionDoc(sessionId) {
+      return request.resource.data.keys().hasOnly([
+          'id', 'label', 'mode', 'preset', 'startedAt', 'endedAt',
+          'workSec', 'breakSec', 'interruptions', 'plannedWorkSec', 'completionPct', 'deepWorkScore',
+          'linkedType', 'linkedId', 'linkedLabel',
+          'cycles', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.id == sessionId
+        && isShortString(request.resource.data.label, 80)
+        && request.resource.data.mode in ['pomodoro', 'stopwatch', 'countdown']
+        && isShortString(request.resource.data.preset, 24)
+        && isShortString(request.resource.data.startedAt, 40)
+        && isShortString(request.resource.data.endedAt, 40)
+        && request.resource.data.workSec is int
+        && request.resource.data.workSec >= 0
+        && request.resource.data.workSec <= 864000
+        && request.resource.data.breakSec is int
+        && request.resource.data.breakSec >= 0
+        && request.resource.data.breakSec <= 864000
+        && (!('interruptions' in request.resource.data) || (
+          request.resource.data.interruptions is int
+          && request.resource.data.interruptions >= 0
+          && request.resource.data.interruptions <= 100000
+        ))
+        && (!('plannedWorkSec' in request.resource.data) || (
+          request.resource.data.plannedWorkSec is int
+          && request.resource.data.plannedWorkSec >= 0
+          && request.resource.data.plannedWorkSec <= 864000
+        ))
+        && (!('completionPct' in request.resource.data) || (
+          request.resource.data.completionPct is int
+          && request.resource.data.completionPct >= 0
+          && request.resource.data.completionPct <= 200
+        ))
+        && (!('deepWorkScore' in request.resource.data) || (
+          request.resource.data.deepWorkScore is int
+          && request.resource.data.deepWorkScore >= 0
+          && request.resource.data.deepWorkScore <= 100
+        ))
+        && (!('linkedType' in request.resource.data) || request.resource.data.linkedType in ['', 'habit', 'todo'])
+        && (!('linkedId' in request.resource.data) || isShortString(request.resource.data.linkedId, 120))
+        && (!('linkedLabel' in request.resource.data) || isShortString(request.resource.data.linkedLabel, 160))
+        && request.resource.data.cycles is int
+        && request.resource.data.cycles >= 0
+        && request.resource.data.cycles <= 10000
+        && isShortString(request.resource.data.createdAt, 40)
+        && isShortString(request.resource.data.updatedAt, 40);
+    }
+
+    function validErrorDoc(userId, errorId) {
+      return request.resource.data.keys().hasOnly([
+          'id', 'userId', 'kind', 'message', 'stack', 'page', 'tab', 'online', 'appVersion', 'extra', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.id == errorId
+        && request.resource.data.userId == userId
+        && isShortString(request.resource.data.kind, 24)
+        && isShortString(request.resource.data.message, 500)
+        && (!('stack' in request.resource.data) || isShortString(request.resource.data.stack, 4000))
+        && (!('page' in request.resource.data) || isShortString(request.resource.data.page, 120))
+        && (!('tab' in request.resource.data) || isShortString(request.resource.data.tab, 24))
+        && (!('online' in request.resource.data) || request.resource.data.online is bool)
+        && (!('appVersion' in request.resource.data) || isShortString(request.resource.data.appVersion, 24))
+        && request.resource.data.extra is map
+        && request.resource.data.extra.keys().hasOnly(['source', 'lineno', 'colno'])
+        && (!('source' in request.resource.data.extra) || isShortString(request.resource.data.extra.source, 80))
+        && (!('lineno' in request.resource.data.extra) || request.resource.data.extra.lineno is int)
+        && (!('colno' in request.resource.data.extra) || request.resource.data.extra.colno is int)
+        && isShortString(request.resource.data.createdAt, 40)
+        && isShortString(request.resource.data.updatedAt, 40);
+    }
+
+    function validPushSubscriptionDoc() {
+      return request.resource.data.keys().hasOnly([
+          'endpoint', 'keys', 'timezone', 'locale', 'platform', 'userAgent',
+          'permission', 'enabled', 'createdAt', 'updatedAt'
+        ])
+        && isShortString(request.resource.data.endpoint, 4096)
+        && request.resource.data.keys is map
+        && request.resource.data.keys.keys().hasOnly(['p256dh', 'auth'])
+        && isShortString(request.resource.data.keys.p256dh, 512)
+        && isShortString(request.resource.data.keys.auth, 512)
+        && (!('timezone' in request.resource.data) || isShortString(request.resource.data.timezone, 80))
+        && (!('locale' in request.resource.data) || isShortString(request.resource.data.locale, 24))
+        && (!('platform' in request.resource.data) || isShortString(request.resource.data.platform, 64))
+        && (!('userAgent' in request.resource.data) || isShortString(request.resource.data.userAgent, 320))
+        && (!('permission' in request.resource.data) || request.resource.data.permission in ['default', 'granted', 'denied'])
+        && (!('enabled' in request.resource.data) || request.resource.data.enabled is bool)
+        && isShortString(request.resource.data.createdAt, 40)
+        && isShortString(request.resource.data.updatedAt, 40);
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validCloudRoot();
+      allow delete: if false;
+    }
+
+    match /users/{userId}/meta/{docId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && (
+        (docId == 'state' && validStateDoc()) ||
+        (docId == 'migration' && validMigrationDoc())
+      );
+      allow delete: if false;
+    }
+
+    match /users/{userId}/habits/{habitId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validHabitDoc(habitId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/todos/{todoId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validTodoDoc(todoId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/books/{bookId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validBookDoc(bookId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/notes/{noteId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validNoteDoc(noteId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/focusSessions/{sessionId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validFocusSessionDoc(sessionId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/errors/{errorId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validErrorDoc(userId, errorId);
+      allow update, delete: if false;
+    }
+
+    match /users/{userId}/pushSubscriptions/{subscriptionId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validPushSubscriptionDoc();
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
