@@ -20,10 +20,3 @@ jobs:
 
       - name: Run unit tests (Vitest)
         run: npm test
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run E2E smoke tests (Playwright)
-        run: npm run test:e2e
-        timeout-minutes: 5

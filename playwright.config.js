@@ -9,7 +9,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 1,
   workers: 1,
   reporter: [
-    ['html', { outputFolder: 'test-results/e2e-report' }],
+    ['html', { outputFolder: 'playwright-report' }],
     ['list']
   ],
   use: {
@@ -45,12 +45,10 @@ export default defineConfig({
       }
     }
   ],
-  webServer: process.env.CI
-    ? undefined
-    : {
-        command: 'npx serve . -p 5000 --cors',
-        port: 5000,
-        timeout: 15000,
-        reuseExistingServer: true
-      }
+  webServer: {
+    command: 'npx serve . -p 5000 --cors',
+    port: 5000,
+    timeout: 30000,
+    reuseExistingServer: !process.env.CI
+  }
 });
