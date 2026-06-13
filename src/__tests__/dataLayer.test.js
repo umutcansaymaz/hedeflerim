@@ -522,6 +522,24 @@ describe('mergeAppDataForSync()', () => {
     expect(result.todos[0].text).toBe('Cloud');
   });
 
+  it('should not restore a cloud todo deleted locally after its last update', () => {
+    globalThis.window.trashBin = [{
+      trashId: 'trash-t1',
+      type: 'todo',
+      deletedAt: '2024-01-03T00:00:00.000Z',
+      payload: { id: 't1', text: 'Deleted local todo' }
+    }];
+    const local = globalThis.normalizeAppData({ todos: [] });
+    const cloud = globalThis.normalizeAppData({
+      todos: [{ id: 't1', text: 'Stale cloud todo', updatedAt: '2024-01-02T00:00:00.000Z' }]
+    });
+
+    const result = globalThis.mergeAppDataForSync(local, cloud);
+
+    expect(result.todos).toHaveLength(0);
+    globalThis.window.trashBin = [];
+  });
+
   it('should merge books with latest timestamp wins', () => {
     const local = globalThis.normalizeAppData({
       books: [{ id: 'b1', title: 'Local', currentPage: 10, updatedAt: '2024-01-01T00:00:00.000Z' }]

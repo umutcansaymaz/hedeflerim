@@ -189,7 +189,7 @@ function softDeleteItem(type, id, options = {}) {
 
     const [removed] = window.appData[bucket].splice(index, 1);
     const trashEntry = window.addToTrash(type, removed);
-    window.saveData();
+    window.saveData(false, { immediate: true });
     window.renderActiveTab();
 
     const itemLabel = options.itemLabel || getEntityTypeLabel(type);

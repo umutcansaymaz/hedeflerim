@@ -21,7 +21,7 @@ function persistLocalDataNow() {
     const payload = JSON.stringify(window.appData);
     if (payload === window.lastPersistedPayload) return;
     localStorage.setItem(window.STORAGE_KEY, payload);
-    lastPersistedPayload = payload;
+    window.lastPersistedPayload = payload;
 }
 
 function queueLocalSave() {
@@ -153,7 +153,7 @@ function restoreTrashEntryById(trashId) {
         return false;
     }
 
-    saveData();
+    saveData(false, { immediate: true });
     window.renderActiveTab();
     return true;
 }
@@ -257,12 +257,33 @@ function shouldShowOnboarding() {
     return localStorage.getItem(window.ONBOARDING_STORAGE_KEY) !== '1';
 }
 
+function applyExternalAppDataPayload(payload) {
+    if (!payload || payload === window.lastPersistedPayload) return;
+    try {
+        window.appData = window.normalizeAppData(JSON.parse(payload));
+        window.lastPersistedPayload = payload;
+        window.syncWeeklyReviewStoreFromAppData?.();
+        window.refreshReminderSchedule?.();
+        window.renderActiveTab?.();
+    } catch (error) {
+        console.error('Error applying external data:', error);
+    }
+}
+
+// Listen for cross-tab storage changes so stale tabs cannot re-save deleted items.
+window.addEventListener('storage', (e) => {
+    if (e.key === window.STORAGE_KEY && e.newValue) {
+        applyExternalAppDataPayload(e.newValue);
+    }
+});
+
 // Export all functions globally for module scripts
 window.loadData = loadData;
 window.persistLocalDataNow = persistLocalDataNow;
 window.queueLocalSave = queueLocalSave;
 window.flushPendingLocalSave = flushPendingLocalSave;
 window.saveData = saveData;
+window.applyExternalAppDataPayload = applyExternalAppDataPayload;
 window.loadTrashBin = loadTrashBin;
 window.persistTrashBin = persistTrashBin;
 window.pruneTrashBin = pruneTrashBin;

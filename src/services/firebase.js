@@ -80,14 +80,9 @@ try {
                 });
             } else {
                 lastCloudSnapshot = null;
-                pendingCloudSave = false;
                 pendingCloudLoad = false;
                 cloudRetryCount = 0;
                 window.clearCloudRetryTimer();
-                if (cloudSaveTimer) {
-                    clearTimeout(cloudSaveTimer);
-                    cloudSaveTimer = null;
-                }
             }
         });
 

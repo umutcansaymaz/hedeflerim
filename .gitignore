@@ -26,6 +26,7 @@ scripts/auth-*.json
 
 # Test artifacts
 test-results/
+playwright-report/
 output/
 test/e2e/screenshots/*.png
 output/playwright/report/

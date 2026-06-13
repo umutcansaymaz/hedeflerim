@@ -23,7 +23,7 @@ function toggleTodo(id) {
     if (todo) {
         todo.completed = !todo.completed;
         todo.updatedAt = new Date().toISOString();
-        window.saveData();
+        window.saveData(false, { immediate: true });
         window.renderActiveTab();
     }
 }

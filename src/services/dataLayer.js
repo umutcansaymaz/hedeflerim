@@ -555,9 +555,31 @@ function mergeItemsById(localItems, cloudItems, mergeFn) {
     return Array.from(map.values());
 }
 
+function getTrashDeletedAtMs(type, id) {
+    const entries = Array.isArray(window.trashBin) ? window.trashBin : [];
+    let deletedAtMs = 0;
+    entries.forEach(entry => {
+        if (entry?.type !== type || entry?.payload?.id !== id) return;
+        deletedAtMs = Math.max(deletedAtMs, window.parseTimestamp(entry.deletedAt));
+    });
+    return deletedAtMs;
+}
+
+function filterCloudItemsDeletedLocally(type, cloudItems) {
+    return (cloudItems || []).filter(item => {
+        const deletedAtMs = getTrashDeletedAtMs(type, item?.id);
+        if (deletedAtMs <= 0) return true;
+        return getItemSyncTimeMs(item) > deletedAtMs;
+    });
+}
+
 function mergeAppDataForSync(localData, cloudData) {
     const local = normalizeAppData(localData);
     const cloud = normalizeAppData(cloudData);
+    cloud.habits = filterCloudItemsDeletedLocally('habit', cloud.habits);
+    cloud.todos = filterCloudItemsDeletedLocally('todo', cloud.todos);
+    cloud.books = filterCloudItemsDeletedLocally('book', cloud.books);
+    cloud.notes = filterCloudItemsDeletedLocally('note', cloud.notes);
 
     const merged = normalizeAppData({
         ...local,

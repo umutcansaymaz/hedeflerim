@@ -3,7 +3,7 @@
 # hangi kuralların uygulanacağını belirtir.
 
 version: "1.2"
-last_updated: "2026-05-10"
+last_updated: "2026-06-13"
 
 project:
   name: "Hedeflerim"
@@ -514,6 +514,54 @@ tasks:
     affected_files:
       - "src/components/progress.js"
       - "src/components/stats.js"   # yorum güncellendi
+
+  - id: "BUG-004"
+    title: "Todo tamamlama senkronizasyon fix - debounce, auth churn, cross-tab"
+    description: >
+      Tamamlanan todolar debounce+auth churn+sayfa kapanma senaryolarında
+      kaybolup completed=false olarak geri geliyordu.
+      Fix: (1) toggleTodo artık immediate save yapar (250ms beklemek yerine
+      direkt localStorage'a yazar). (2) LOCAL_SAVE_DEBOUNCE_MS 250→100ms
+      düşürüldü. (3) Firebase onAuthStateChanged(null) branşı artık
+      bekleyen cloudSaveTimer'ı iptal etmiyor (null user'da save sessizce
+      döner, veri kaybolmaz). (4) Cross-tab koruması için storage event
+      listener eklendi (başka tab yazınca lastPersistedPayload güncellenir).
+    priority: "high"
+    status: "completed"
+    phase: 2
+    dependencies: []
+    guardrails:
+      - GR-SP03   # single responsibility
+      - GR-SP05   # temiz kod
+    affected_files:
+      - "src/components/todos.js"
+      - "src/utils/constants.js"
+      - "src/services/firebase.js"
+      - "src/services/storage.js"
+
+  - id: "BUG-005"
+    title: "Todo silme senkronizasyon kaliciligi"
+    description: >
+      Silinen gorevlerin Firebase load/save yarisi, debounce veya cross-tab stale
+      state nedeniyle geri gelmesini engelle. Fix: soft delete ve trash restore
+      aksiyonlari immediate save kullanir; auth null state pending cloud save'i
+      sifirlamaz; storage event diger tabdan gelen payload'i appData'ya uygular;
+      cloud merge yerel cop kutusunda daha yeni silinmis item'lari tekrar listeye
+      eklemez.
+    priority: "high"
+    status: "completed"
+    phase: 2
+    dependencies:
+      - "BUG-004"
+    guardrails:
+      - GR-SP03   # single responsibility
+      - GR-SP05   # temiz kod
+    affected_files:
+      - "src/components/habits.js"
+      - "src/services/dataLayer.js"
+      - "src/services/firebase.js"
+      - "src/services/storage.js"
+      - "src/__tests__/dataLayer.test.js"
 
   # ============================================================
   # FEAT-004: İleri Tarihli Todo'lar

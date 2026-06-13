@@ -126,4 +126,26 @@
 
 ---
 
+---
+
+### 2026-06-10 — BUG-004: Todo Tamamlama Senkronizasyon Fix
+
+- **Event**: Tamamlanan todolar debounce gecikmesi + Firebase auth churn + sayfa kapanma senaryolarında completed=false olarak geri geliyordu.
+- **Cause**: (1) `toggleTodo` debounced `saveData()` kullanıyordu (250ms), mobil PWA'da process ölürse veri kayboluyordu. (2) Firebase `onAuthStateChanged(null)` bekleyen `cloudSaveTimer`'ı iptal ediyor, cloud save kayboluyordu. (3) Cross-tab `lastPersistedPayload` paylaşılmıyordu.
+- **Fix**: (1) `saveData(false, { immediate: true })` — debounce atlanır. (2) `LOCAL_SAVE_DEBOUNCE_MS 250→100`. (3) null branşta `cloudSaveTimer` iptali kaldırıldı. (4) `storage` event listener eklendi.
+- **Lesson**: Kullanıcı aksiyonları (toggle, delete, create) `{ immediate: true }` ile kaydedilmeli. Firebase auth churn'de state cleanup yaparken pending async işlemleri öldürmemeli. Cross-tab senaryolarında `storage` event her zaman dinlenmeli.
+- **Etiket**: `bug`, `optimization`
+
+---
+
+### 2026-06-13 - BUG-005: Todo Silme Senkronizasyon Kaliciligi
+
+- **Event**: Silinen gorevler debounce, auth churn, cross-tab stale state veya cloud load/save yarisi sonrasinda geri gelebiliyordu.
+- **Cause**: Silme ortak `softDeleteItem` yolunda debounce'lu save kullaniyordu; cloud merge, yerelde cop kutusuna alinmis ama cloud'da kalan eski item'i tekrar listeye ekleyebiliyordu; auth null state pending cloud save'i sifirliyordu; storage event sadece payload hash'ini guncelliyor, appData'yi yenilemiyordu.
+- **Fix**: Soft delete ve trash restore immediate save'e alindi. Auth null state pending cloud save'i koruyor. Cross-tab storage payload'i normalize edilip appData'ya uygulanir. Cloud merge, yerel cop kutusunda daha yeni silinmis item'lari filtreler. Unit test eklendi.
+- **Lesson**: Silme islemleri sadece "array'den cikarma" degildir; local persist, cloud delete, merge ve cross-tab katmanlari birlikte test edilmelidir.
+- **Etiket**: `bug`, `sync`, `todo`
+
+---
+
 *Her task sonrası @dokumantasyon tarafından güncellenir.*
