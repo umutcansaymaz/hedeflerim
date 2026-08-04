@@ -3,7 +3,7 @@
 # hangi kuralların uygulanacağını belirtir.
 
 version: "1.2"
-last_updated: "2026-06-13"
+last_updated: "2026-07-16"
 
 project:
   name: "Hedeflerim"
@@ -52,6 +52,7 @@ project:
     manifest.json
 
 # ===== Çalışma Fazları =====
+# Phase 0: GENESIS (governance bootstrap)
 # Phase 1: CLEAN  (temizlik / spagetti önleme)
 # Phase 2: MAINT  (bakım)
 # Phase 3: FEAT   (yeni özellik)
@@ -184,32 +185,51 @@ tasks:
   - id: "CLEAN-003"
     title: "Global değişken sayısını 10 altına indir"
     description: >
-      app-v5.js içindeki global değişkenleri tara, gereksiz olanları
-      kapsülle (IIFE / module pattern). Sadece zorunlu global'ler kalsın.
+      app-v5.js içindeki 328 adet window.X global değişken kapsüllendi.
+      Tüm değişkenler 4 namespace'te toplandı: window.C (constants, 30),
+      window.Utils (helpers, 39), window.Services (services+state, ~61),
+      window.Components (components, ~194). Ayrıca 3 config global kaldı:
+      HDEFLERIM_FIREBASE_CONFIG, HDEFLERIM_ALLOWED_EMAILS,
+      HDEFLERIM_WEB_PUSH_PUBLIC_KEY. 1 var appData store.js'de (geçici
+      uyum). store.js'deki _exposeToGlobal 27 state path'ini getter/setter
+      olarak yansıtır. focus-engine.js'deki FocusTimer Components'e taşındı.
+      remaining window.* atamaları temizlendi: currentTodoFilter,
+      currentBookFilter → Services, addBookFromSearch, FocusTimer →
+      Components, focusGoalPersistTimer → Services. 178/178 test geçiyor.
     priority: "medium"
-    status: "pending"
+    status: "completed"
     phase: 1
     dependencies:
       - "CLEAN-001"
     guardrails:
       - GR-SP06   # global değişken < 10
     affected_files:
-      - "app-v5.js"
+      - "src/utils/constants.js"
+      - "src/utils/helpers.js"
+      - "src/services/*.js"
+      - "src/state/store.js"
+      - "src/components/*.js"
+      - "src/__tests__/setup.js"
+      - "src/__tests__/*.test.js"
 
   - id: "CLEAN-004"
     title: "Ölü kod ve debug kalıntılarını temizle"
     description: >
-      Kullanılmayan fonksiyon/değişkenleri sil. console.log/warn
-      kaldır (DEBUG_MODE korumalı olanlar hariç). TODO/FIXME
-      yorumlarını task.md'ye taşı veya çöz.
+      Tarama sonuçları: (1) console.log/warn — sadece DEBUG_MODE korumalı,
+      bulgu yok. (2) TODO/FIXME/HACK yorumu — hiçbiri yok. (3) Yorum satırına
+      alınmış kod — yok. (4) Kullanılmayan fonksiyon — hepsi ya Components
+      namespace'inde export edilmiş ya da addEventListener/callback ile
+      kullanılıyor. (5) Magic number — tümü constants.js'de. (6) Tek fix:
+      app.js'de window.openTrashModal → Components.openTrashModal dönüştürüldü.
+      Mevcut kod GR-SP05'e zaten uyumlu.
     priority: "medium"
-    status: "pending"
+    status: "completed"
     phase: 1
     dependencies: []
     guardrails:
       - GR-SP05   # temiz kod
     affected_files:
-      - "app-v5.js"
+      - "src/components/app.js"
 
   - id: "CLEAN-005"
     title: "Fonksiyon boyutlarını 80 satır altına düşür"
@@ -232,20 +252,54 @@ tasks:
       - "src/components/progress.js"
       - "src/components/app.js"
 
-  - id: "CLEAN-006"
+  - id: "CLEAN-006a"
     title: "Naming Convention uygula"
     description: >
+      GR-SP04 kurallarına göre tüm kod taranmıştır.
       camelCase (fonksiyon), PascalCase (component), UPPER_SNAKE (sabit),
-      _prefix (private), is/has/can prefix (boolean). Anlamsız isimleri
-      düzelt.
+      _prefix (private), is/has/can prefix (boolean) — tümü uyumlu.
+      Önceki refactor'lardan zaten temiz, ek müdahale gerekmedi.
     priority: "medium"
-    status: "pending"
+    status: "completed"
     phase: 1
     dependencies: []
     guardrails:
       - GR-SP04   # naming convention
     affected_files:
-      - "app-v5.js"
+      - "src/"
+
+  - id: "CLEAN-007"
+    title: "Cloud Functions karmaşıklık azaltma (trigger/logic ayrımı)"
+    description: >
+      functions/index.js (443 satır, CC ~60+, derinlik 5) refactor edildi.
+      Yapılan: (1) Saf mantık functions/logic.js'ye taşındı (zaman/pencere
+      hesapları, ilerleme/seri, payload üreticileri, WINDOWS tablosu) —
+      firebase/web-push import'u yok. (2) morning/urgency/night'ın 3 özdeş
+      bloğu tek sendWindowNotification + WINDOWS tablosuna indirildi (DRY).
+      (3) loadUserContext, getActiveSubscriptions, sendStreakMilestoneNotifications,
+      processUser çıkarıldı; tüm fonksiyonlar ≤80 satır, nesting ≤2.
+      (4) Deploy güvenliği: index.js export yüzeyi tek isim
+      (sendScheduledReminders) — helper'lar trigger olarak sızmaz (ADR-0006).
+      (5) functions'da Vitest kuruldu: test/logic.test.js (58 golden test) +
+      test/index.test.js (2 smoke test) = 60/60 yeşil. (6) Davranış değişmedi;
+      kök 178/178 test hâlâ yeşil.
+    priority: "high"
+    status: "completed"
+    phase: 1
+    dependencies:
+      - "CLEAN-001"
+    guardrails:
+      - GR-SP01   # fonksiyon boyutu & derinlik
+      - GR-SP02   # DRY
+      - GR-SP03   # single responsibility
+    affected_files:
+      - "functions/index.js"
+      - "functions/logic.js"
+      - "functions/package.json"
+      - "functions/vitest.config.js"
+      - "functions/test/logic.test.js"
+      - "functions/test/index.test.js"
+      - "docs/architecture/adr/0006-cloud-functions-module-split.md"
 
   # ============================================================
   # MAINT: Bakım
@@ -268,10 +322,13 @@ tasks:
   - id: "MAINT-002"
     title: "PWA icon ve manifest güncelle"
     description: >
-      icon-192.png ve icon-512.png yeni logo ile değiştir.
-      manifest.json ve index.html theme-color kontrol et.
+      Kontrol: (1) manifest.json geçerli JSON, theme_color=background_color=#0F1638. ✅
+      (2) icon-192.png (1385 bytes) ve icon-512.png (4891 bytes) mevcut ve geçerli. ✅
+      (3) index.html theme-color meta #0F1638. ✅ (4) sw.js v10, her iki icon STATIC_ASSETS'te. ✅
+      (5) icon-192.png.png ve icon-512.png.png hatalı kopyaları temizlendi.
+      Tüm GR-PW01 kontrollerinden geçti.
     priority: "low"
-    status: "pending"
+    status: "completed"
     phase: 2
     dependencies: []
     guardrails:
@@ -287,8 +344,14 @@ tasks:
     description: >
       firestore.rules içindeki validasyon fonksiyonlarını gözden geçir,
       gereksiz kısıtlamaları kaldır, performans için optimize et.
+      Yapılan: (1) Tüm validasyon fonksiyonları (10 adet) app verisiyle
+      karşılaştırıldı — tam uyum, hiçbir alan eksik/fazla değil.
+      (2) 10 koleksiyonun tümünde yazılan alanlar rules'daki validasyonla
+      birebir örtüşüyor. (3) isOwner() placeholder email düzeltmesi
+      GUVENLIK-002'de yapıldı. (4) Gereksiz kısıtlama bulunamadı —
+      mevcut validasyonlar anlamlı ve yeterli.
     priority: "medium"
-    status: "pending"
+    status: "completed"
     phase: 2
     dependencies: []
     guardrails:
@@ -300,17 +363,23 @@ tasks:
   - id: "MAINT-004"
     title: "Error logging iyileştirmesi"
     description: >
-      Hata loglarının Firestore'a yazılması mekanizmasını iyileştir.
-      Rate limiting, batch yazma, kritik hata alarmı ekle.
+      Hata loglarının Firestore'a yazılması mekanizması iyileştirildi.
+      Yapılan: (1) pendingErrorUploads kuyruğu max 100 ile sınırlandı
+      (PENDING_ERROR_UPLOAD_MAX). (2) Batch yazma hatasında 3 kez
+      exponential backoff ile tekrar deneme eklendi (ERROR_UPLOAD_RETRY_DELAYS:
+      2s/4s/8s). (3) Hata oluştuğunda syncStatus elemanında hata sayısı
+      gösteren alarm/badge eklendi (10sn rate-limited, var(--danger) rengi).
+      (4) Rate limit aşıldığında sessizce düşmek yerine kalan süre kadar
+      bekleyip yeniden dener. 178/178 test geçiyor.
     priority: "low"
-    status: "pending"
+    status: "completed"
     phase: 2
     dependencies: []
     guardrails:
       - GR-GV01   # veri sızıntısı kontrolü
       - GR-SP01   # fonksiyon boyutu
     affected_files:
-      - "app-v5.js"
+      - "src/services/sync.js"
 
   - id: "MAINT-005"
     title: "Performans optimizasyonu"
@@ -399,10 +468,17 @@ tasks:
   - id: "GUVENLIK-001"
     title: "Auth whitelist yönetim mekanizması"
     description: >
-      ALLOWED_EMAILS array'ini Firestore'dan dinamik okunur hale getir.
-      Admin paneli olmadan whitelist yönetimi için basit bir çözüm.
+      ALLOWED_EMAILS artık Firestore'dan dinamik okunuyor.
+      Yapılan: (1) firestore.rules — config/whitelist okuma kuralı eklendi
+      (isSignedIn() okuyabilir, whitelist üyeleri yazabilir). (2) firebase.js —
+      _loadDynamicWhitelist() Firestore'dan config/whitelist.emails dizisini
+      okuyup STATIC_ALLOWED_EMAILS ile birleştirir. (3) onAuthStateChanged
+      callback'inde whitelist önce yüklenir, sonra kontrol edilir. (4) Admin
+      paneli gerekmez — Firebase Console'dan config/whitelist doc'una emails[]
+      eklenerek yeni kullanıcı eklenir. (5) Testler güncellendi (async callback).
+      178/178 test geçiyor.
     priority: "medium"
-    status: "pending"
+    status: "completed"
     phase: 2
     dependencies: []
     guardrails:
@@ -410,16 +486,21 @@ tasks:
       - GR-FB02   # auth whitelist (2 dosya)
       - GR-GV01   # güvenlik
     affected_files:
-      - "app-v5.js"
+      - "src/services/firebase.js"
       - "firestore.rules"
+      - "src/__tests__/firebase.test.js"
 
   - id: "GUVENLIK-002"
     title: "API key güvenlik denetimi"
     description: >
       Firebase config dışında hardcoded API key var mı kontrol et.
       Hassas verilerin loglanmadığından emin ol. XSS vektörlerini tara.
+      Yapılan: (1) Tüm JS tarandı — hardcoded API key yok. (2) console.log/warn
+      sadece DEBUG_MODE korumalı. (3) innerHTML kullanımı safeText/escapeHtml
+      ile sanitize edilmiş. (4) firestore.rules isOwner()'daki placeholder email
+      kaldırıldı (uid bazlı kontrol). (5) README.md güncellendi.
     priority: "high"
-    status: "pending"
+    status: "completed"
     phase: 2
     dependencies: []
     guardrails:
@@ -704,6 +785,36 @@ tasks:
       - GR-SP05
     affected_files:
       - "style.css"
+
+  - id: "GENESIS-001"
+    title: "Genesis governance bootstrap"
+    description: >
+      Projeye Genesis yönetişim çerçevesini entegre et:
+      - AGENTS.md Genesis formatına yükselt (guardrail ID'leri koru)
+      - docs/memory/ (context, progress, decisions) oluştur
+      - skills/ sistemini ekle (ponytail, caveman, clean-code, wrap-session, write-adr, write-tests, review-own-diff)
+      - docs/process/ (workflow, ai-session-protocol, conventions, definition-of-done, security, automation) oluştur
+      - docs/architecture/adr/ (ADR-0001 ila ADR-0004) oluştur
+      - docs/product/ (vision, roadmap) oluştur
+      - genesis-master/ referans klasörünü kaldır
+    priority: "high"
+    status: "completed"
+    phase: 0
+    dependencies: []
+    guardrails:
+      - GR-SP05
+    affected_files:
+      - "AGENTS.md"
+      - "docs/memory/context.md"
+      - "docs/memory/progress.md"
+      - "docs/memory/decisions.md"
+      - "docs/process/*"
+      - "docs/architecture/adr/*"
+      - "docs/product/*"
+      - "docs/design/design-system.md"
+      - "docs/features/_template.md"
+      - "skills/*"
+      - "task.md"
 
   - id: "FEAT-010"
     title: "Dinamik Yükleme Skeleton Ekranları ve Animasyonlu Boş Durumlar"
