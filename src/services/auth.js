@@ -23,6 +23,8 @@ async function loginWithGoogle() {
         }
 
         const provider = new GoogleAuthProvider();
+        // Her giris isteginde Google hesap secme ekranini zorla goster
+        provider.setCustomParameters({ prompt: 'select_account' });
         await setPersistence(auth, browserLocalPersistence);
 
         // PWA (standalone) penceresinde Firebase popup/redirect donus zinciri tamamlanmiyor

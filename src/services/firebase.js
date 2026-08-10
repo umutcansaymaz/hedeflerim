@@ -93,7 +93,10 @@ try {
                 if (pwaLoginRequested && !pwaLoginAttempted) {
                     pwaLoginAttempted = true;
                     window.debugLog('PWA login: web oturumu yok, Google giris akisi baslatiliyor');
-                    signInWithRedirect(auth, new GoogleAuthProvider()).catch((err) => {
+                    const pwaProvider = new GoogleAuthProvider();
+                    // Google hesap secme ekranini zorla goster
+                    pwaProvider.setCustomParameters({ prompt: 'select_account' });
+                    signInWithRedirect(auth, pwaProvider).catch((err) => {
                         window.debugWarn('PWA login redirect hatasi:', err);
                         window.showToast('Google giris baslatilamadi: ' + err.message);
                     });
