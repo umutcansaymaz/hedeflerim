@@ -28,13 +28,6 @@ async function loginWithGoogle() {
     } catch (error) {
         console.error("Login Error:", error);
 
-        if (loginBtn) {
-            loginBtn.disabled = false;
-            loginBtn.innerHTML = originalText;
-            loginBtn.style.opacity = '1';
-            loginBtn.style.pointerEvents = 'auto';
-        }
-
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
             try {
                 const provider = new GoogleAuthProvider();
@@ -44,6 +37,13 @@ async function loginWithGoogle() {
             }
         } else {
             window.showToast('Giriş hatası: ' + error.message);
+        }
+    } finally {
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = originalText;
+            loginBtn.style.opacity = '1';
+            loginBtn.style.pointerEvents = 'auto';
         }
     }
 }
