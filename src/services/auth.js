@@ -1,7 +1,7 @@
 // ===== Auth Service =====
 // Hedeflerim — login, logout, authUI
 
-import { GoogleAuthProvider, signInWithRedirect, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
 
 const auth = window.auth;
 
@@ -24,8 +24,28 @@ async function loginWithGoogle() {
 
         const provider = new GoogleAuthProvider();
         await setPersistence(auth, browserLocalPersistence);
-        await signInWithRedirect(auth, provider);
-        // Redirect basladi: sayfa Google'a yonlenir. Donuste getRedirectResult + onAuthStateChanged oturumu tamamlar.
+
+        // PWA (standalone) penceresinde redirect akisi Chrome tarafindan bozulabilir;
+        // popup ise window.open + postMessage ile calisir ve standalone moddan etkilenmez.
+        const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
+        let signedIn = false;
+        if (isStandalone) {
+            try {
+                await signInWithPopup(auth, provider);
+                signedIn = true;
+                window.showToast('Giriş başarılı');
+            } catch (popupError) {
+                if (popupError.code !== 'auth/popup-blocked' && popupError.code !== 'auth/popup-closed-by-user') {
+                    throw popupError;
+                }
+                window.debugWarn('PWA popup akisi kullanilamadi, redirect deneniyor:', popupError.code);
+            }
+        }
+        if (!signedIn) {
+            await signInWithRedirect(auth, provider);
+            // Redirect basladi: sayfa Google'a yonlenir. Donuste getRedirectResult + onAuthStateChanged oturumu tamamlar.
+        }
     } catch (error) {
         console.error("Login Error:", error);
         window.showToast('Giriş başlatılamadı: ' + error.message);
