@@ -1,7 +1,7 @@
 // ===== Auth Service =====
 // Hedeflerim — login, logout, authUI
 
-import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
 
 const auth = window.auth;
 
@@ -17,27 +17,18 @@ async function loginWithGoogle() {
 
         if (loginBtn) {
             loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span class="loading-spinner"></span> Bekleyin...';
+            loginBtn.innerHTML = '<span class="loading-spinner"></span> Google ile bağlanılıyor...';
             loginBtn.style.opacity = '0.7';
             loginBtn.style.pointerEvents = 'none';
         }
 
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-        window.showToast('Giriş başarılı');
+        await setPersistence(auth, browserLocalPersistence);
+        await signInWithRedirect(auth, provider);
+        // Redirect basladi: sayfa Google'a yonlenir. Donuste getRedirectResult + onAuthStateChanged oturumu tamamlar.
     } catch (error) {
         console.error("Login Error:", error);
-
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-            try {
-                const provider = new GoogleAuthProvider();
-                await signInWithRedirect(auth, provider);
-            } catch (redirError) {
-                window.showToast('Giriş hatası: ' + redirError.message);
-            }
-        } else {
-            window.showToast('Giriş hatası: ' + error.message);
-        }
+        window.showToast('Giriş başlatılamadı: ' + error.message);
     } finally {
         if (loginBtn) {
             loginBtn.disabled = false;

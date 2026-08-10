@@ -61,9 +61,9 @@ try {
 
         onAuthStateChanged(auth, user => {
             if (user && user.email && !ALLOWED_EMAILS.includes(user.email)) {
-                window.debugWarn('Unauthorized login attempt blocked');
+                window.debugWarn('Unauthorized login attempt blocked: ' + user.email);
                 signOut(auth).then(() => {
-                    window.showToast('Bu e-posta adresi ile giris izniniz bulunmamaktadir.');
+                    window.showToast('Giris izniniz yok: ' + user.email + '. Izinli hesaplar: ' + (ALLOWED_EMAILS.join(', ') || 'bos'));
                 });
                 window.currentUser = null;
                 window.updateAuthUI(null);
