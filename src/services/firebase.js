@@ -2,7 +2,7 @@
 // Hedeflerim - Firebase init & auth state (singleton pattern)
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence, signOut, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 import { initializeFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 
 // ===== Firebase Config =====
@@ -20,6 +20,10 @@ const firebaseConfig = window.HDEFLERIM_FIREBASE_CONFIG || {
 
 // ===== Firebase Globals =====
 let db, auth;
+
+// PWA'dan gelen giris istegi (?pwa_login=1): web sekmesinde oturum yoksa otomatik Google giris akisi
+const pwaLoginRequested = new URLSearchParams(window.location.search).get('pwa_login') === '1';
+let pwaLoginAttempted = false;
 
 // ===== Allowed Users Whitelist =====
 const ALLOWED_EMAILS = Array.isArray(window.HDEFLERIM_ALLOWED_EMAILS)
@@ -83,6 +87,17 @@ try {
                 pendingCloudLoad = false;
                 cloudRetryCount = 0;
                 window.clearCloudRetryTimer();
+
+                // PWA'dan gelen giris istegi: web sekmesinde oturum yoksa Google girisini baslat.
+                // (PWA penceresi ?pwa_login=1 ile web surumunu acti -> burada redirect akisi tamamlanir.)
+                if (pwaLoginRequested && !pwaLoginAttempted) {
+                    pwaLoginAttempted = true;
+                    window.debugLog('PWA login: web oturumu yok, Google giris akisi baslatiliyor');
+                    signInWithRedirect(auth, new GoogleAuthProvider()).catch((err) => {
+                        window.debugWarn('PWA login redirect hatasi:', err);
+                        window.showToast('Google giris baslatilamadi: ' + err.message);
+                    });
+                }
             }
         });
 

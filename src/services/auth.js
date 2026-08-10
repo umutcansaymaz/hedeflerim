@@ -24,9 +24,20 @@ async function loginWithGoogle() {
 
         const provider = new GoogleAuthProvider();
         await setPersistence(auth, browserLocalPersistence);
-        // REDIRECT AKISI: Android PWA'da popup (window.open) Custom Tab'a tasinir ve
-        // postMessage geri donmez -> promise asili kalir. Redirect ise Chrome tarafindan
-        // normal sekmeye tasinir, giris orada tamamlanir, oturum PWA'ya yansir.
+
+        // PWA (standalone) penceresinde Firebase popup/redirect donus zinciri tamamlanmiyor
+        // (Android'de dogrulandi: hesap secimi PWA icinde aciliyor ama auth donusu asili kaliyor).
+        // Kesin cozum: giris web surumunde (Chrome sekmesi) yapilir; ayni origin oldugu icin
+        // oturum localStorage uzerinden PWA'ya otomatik yansir (Firebase multi-tab senkronu).
+        const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+        if (isStandalone) {
+            window.debugWarn('PWA modu: giris Chrome sekmesindeki web surumune yonlendiriliyor');
+            window.open('https://hedeflerim-2026.web.app/?pwa_login=1', '_blank');
+            window.showToast('Chrome sekmesinde giriş yap; PWA\'ya döndüğünde oturum açılmış olacak');
+            return;
+        }
+
+        // Web: redirect akisi (kanitlanmis calisiyor)
         await signInWithRedirect(auth, provider);
         // Redirect basladi: sayfa Google'a yonlenir. Donuste getRedirectResult + onAuthStateChanged oturumu tamamlar.
     } catch (error) {

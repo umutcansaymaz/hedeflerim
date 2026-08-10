@@ -44,6 +44,10 @@ self.addEventListener('fetch', event => {
     // Skip cross-origin requests
     if (!event.request.url.startsWith(self.location.origin)) return;
 
+    // Firebase auth akisini SW'den muaf tut: /__/auth/ sayfalari cache'lenmemeli
+    // (SW'nin cache/index.html fallback'i auth donusunu bozabilir)
+    if (event.request.url.includes('/__/auth/')) return;
+
     event.respondWith(
         fetch(event.request)
             .then(networkResponse => {
