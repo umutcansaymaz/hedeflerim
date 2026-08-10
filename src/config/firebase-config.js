@@ -10,5 +10,5 @@ window.HDEFLERIM_FIREBASE_CONFIG = {
     measurementId: ""
 };
 
-window.HDEFLERIM_ALLOWED_EMAILS = ["umutcansaymaz@gmail.com"];
+window.HDEFLERIM_ALLOWED_EMAILS = ["umutcansaymaz@gmail.com", "sulee.kocc8@gmail.com"];
 window.HDEFLERIM_WEB_PUSH_PUBLIC_KEY = "";
