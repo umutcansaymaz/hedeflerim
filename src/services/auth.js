@@ -1,7 +1,7 @@
 // ===== Auth Service =====
 // Hedeflerim — login, logout, authUI
 
-import { GoogleAuthProvider, signInWithRedirect, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
 
 const auth = window.auth;
 
@@ -39,9 +39,11 @@ async function loginWithGoogle() {
             return;
         }
 
-        // Web: redirect akisi (kanitlanmis calisiyor)
-        await signInWithRedirect(auth, provider);
-        // Redirect basladi: sayfa Google'a yonlenir. Donuste getRedirectResult + onAuthStateChanged oturumu tamamlar.
+        // Web: popup akisi. Redirect KULLANILMAZ: Chrome 115+ (Haziran 2024'ten beri) mobilde
+        // 3. parti depolama bolumlemesi nedeniyle signInWithRedirect donusu ASILI KALIYOR
+        // (Firebase resmi dokumani + issue #8329). Popup bu kisita tabi degildir ve mobil Chrome'da calisir.
+        await signInWithPopup(auth, provider);
+        window.showToast('Giriş başarılı');
     } catch (error) {
         console.error("Login Error:", error);
         window.showToast('Giriş başlatılamadı: ' + error.message);

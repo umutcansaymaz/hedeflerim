@@ -2,7 +2,7 @@
 // Hedeflerim - Firebase init & auth state (singleton pattern)
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence, signOut, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
 import { initializeFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 
 // ===== Firebase Config =====
@@ -21,9 +21,9 @@ const firebaseConfig = window.HDEFLERIM_FIREBASE_CONFIG || {
 // ===== Firebase Globals =====
 let db, auth;
 
-// PWA'dan gelen giris istegi (?pwa_login=1): web sekmesinde oturum yoksa otomatik Google giris akisi
+// PWA'dan gelen giris istegi (?pwa_login=1): web sekmesi acildi; kullanici burada
+// 'Giris Yap' butonuna basar (popup akisi user gesture gerektirir, otomatik baslatilamaz).
 const pwaLoginRequested = new URLSearchParams(window.location.search).get('pwa_login') === '1';
-let pwaLoginAttempted = false;
 
 // ===== Allowed Users Whitelist =====
 const ALLOWED_EMAILS = Array.isArray(window.HDEFLERIM_ALLOWED_EMAILS)
@@ -88,28 +88,14 @@ try {
                 cloudRetryCount = 0;
                 window.clearCloudRetryTimer();
 
-                // PWA'dan gelen giris istegi: web sekmesinde oturum yoksa Google girisini baslat.
-                // (PWA penceresi ?pwa_login=1 ile web surumunu acti -> burada redirect akisi tamamlanir.)
-                if (pwaLoginRequested && !pwaLoginAttempted) {
-                    pwaLoginAttempted = true;
-                    window.debugLog('PWA login: web oturumu yok, Google giris akisi baslatiliyor');
-                    const pwaProvider = new GoogleAuthProvider();
-                    // Google hesap secme ekranini zorla goster
-                    pwaProvider.setCustomParameters({ prompt: 'select_account' });
-                    signInWithRedirect(auth, pwaProvider).catch((err) => {
-                        window.debugWarn('PWA login redirect hatasi:', err);
-                        window.showToast('Google giris baslatilamadi: ' + err.message);
-                    });
+                // PWA'dan gelen giris istegi (?pwa_login=1): web sekmesi acildi, oturum yok.
+                // Otomatik giris BASLATILMAZ - popup user gesture gerektirir (Chrome popup engelleyici).
+                // Kullanici bu sayfada 'Giris Yap' butonuna basar; akis popup ile tamamlanir.
+                if (pwaLoginRequested) {
+                    window.debugLog('PWA login: web sekmesi acildi, oturum yok - kullanici Giris Yap butonuna basmali');
+                    window.showToast('Açılan sayfada "Giriş Yap" butonuna basın');
                 }
             }
-        });
-
-        getRedirectResult(auth).then((result) => {
-            if (result.user) {
-                window.debugLog('User signed in via redirect');
-            }
-        }).catch((error) => {
-            window.debugWarn('Redirect auth error:', error);
         });
 
         setPersistence(auth, browserLocalPersistence)
