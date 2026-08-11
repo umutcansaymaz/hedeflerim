@@ -1,4 +1,4 @@
-const CACHE_NAME = 'habit-tracker-v11.0-1786464595131-prod';
+const CACHE_NAME = 'habit-tracker-v11.0-1786465422851-prod';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
