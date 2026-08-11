@@ -11,7 +11,7 @@ async function loginWithGoogle() {
 
     try {
         if (!auth) {
-            window.showToast('Firebase yapilandirmasi eksik. Giris devre disi.');
+            window.showToast('Firebase yapılandırması eksik. Giriş devre dışı.');
             return;
         }
 

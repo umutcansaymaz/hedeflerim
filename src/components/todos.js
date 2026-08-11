@@ -78,7 +78,7 @@ function renderTodos() {
 
     const completed = sortedTodos.filter(t => t.completed).length;
     const total = sortedTodos.length;
-    stats.textContent = `${completed}/${total} tamamlandi • ${window.getTodoBucketLabel(window.currentTodoFilter)}`;
+    stats.textContent = `${completed}/${total} tamamlandı • ${window.getTodoBucketLabel(window.currentTodoFilter)}`;
 
     document.querySelectorAll('[data-todo-filter]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.todoFilter === window.currentTodoFilter);

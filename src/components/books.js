@@ -120,7 +120,7 @@ function updateBookPages(id, currentPage) {
         if (book.totalPages > 0 && book.currentPage >= book.totalPages) {
             book.status = 'completed';
             book.completed = true;
-            window.showToast('Kitap tamamlandi!');
+            window.showToast('Kitap tamamlandı!');
         } else if (book.currentPage > 0) {
             book.status = 'reading';
             book.completed = false;
@@ -144,8 +144,8 @@ function updateBookDailyGoal(id, goalPages) {
     window.saveData();
     renderBooks();
     if (nextGoal !== prevGoal) {
-        if (nextGoal > 0) window.showToast('Gunluk okuma hedefi: ' + nextGoal + ' sayfa');
-        else window.showToast('Gunluk okuma hedefi kaldirildi');
+        if (nextGoal > 0) window.showToast('Günlük okuma hedefi: ' + nextGoal + ' sayfa');
+        else window.showToast('Günlük okuma hedefi kaldırıldı');
     }
 }
 
@@ -186,10 +186,10 @@ function renderBooks() {
 
     if (filteredBooks.length === 0) {
         const emptyMsg = window.currentBookFilter === 'all'
-            ? 'Henuz kitap eklenmedi'
+            ? 'Henüz kitap eklenmedi'
             : window.currentBookFilter === 'reading'
-                ? 'Su an okudugun kitap yok'
-                : 'Henuz bitirilen kitap yok';
+                ? 'Şu an okuduğun kitap yok'
+                : 'Henüz bitirilen kitap yok';
         container.innerHTML = `
             <div class="empty-state">
                 <div class="animated-empty-icon">
@@ -217,12 +217,12 @@ function renderBooks() {
                     ? 'good'
                     : 'ok';
         const dailyGoalText = dailyGoal <= 0
-            ? 'Gunluk hedef yok. Istersen sayfa hedefi belirle.'
+            ? 'Günlük hedef yok. İstersen sayfa hedefi belirle.'
             : dailyDeviation.isBehind
-                ? 'Bugun hedefin ' + dailyDeviation.absDiff + ' sayfa gerisindesin.'
+                ? 'Bugün hedefin ' + dailyDeviation.absDiff + ' sayfa gerisindesin.'
                 : dailyDeviation.isAhead
-                    ? 'Bugun hedefin ' + dailyDeviation.absDiff + ' sayfa ustundesin.'
-                    : 'Bugun hedefi tutturdun.';
+                    ? 'Bugün hedefin ' + dailyDeviation.absDiff + ' sayfa üstündesin.'
+                    : 'Bugün hedefi tutturdun.';
         const safeBookId = window.escapeJsSingleQuote(book.id || '');
         const safeBookDataId = safeText(book.id);
         const safeBookTitle = safeText(book.title);
@@ -232,7 +232,7 @@ function renderBooks() {
         const avgPagesPerDay = 50;
         const daysRemaining = hasPages ? Math.ceil(remaining / avgPagesPerDay) : 0;
         const estimateHtml = hasPages && remaining > 0 ? `
-            <div class="book-estimate">~${daysRemaining} gunde bitir</div>
+            <div class="book-estimate">~${daysRemaining} günde bitir</div>
         ` : '';
 
         const progressHtml = hasPages ? `
@@ -253,7 +253,7 @@ function renderBooks() {
         const goalHtml = `
             <div class="book-daily-goal-card">
                 <div class="book-daily-goal-head">
-                    <span class="book-daily-goal-title">Gunluk hedef</span>
+                    <span class="book-daily-goal-title">Günlük hedef</span>
                     <div class="book-daily-goal-inputwrap">
                         <input type="number" class="book-daily-goal-input" value="${dailyGoal > 0 ? dailyGoal : ''}"
                                min="0" max="5000" step="1" placeholder="20"
@@ -263,7 +263,7 @@ function renderBooks() {
                     </div>
                 </div>
                 <div class="book-daily-goal-meta ${dailyGoalStateClass}">
-                    <strong>Bugun: ${dailyDeviation.todayRead}</strong>
+                    <strong>Bugün: ${dailyDeviation.todayRead}</strong>
                     <span>${safeText(dailyGoalText)}</span>
                 </div>
             </div>

@@ -1,5 +1,5 @@
 // ===== Stats Component =====
-// Hedeflerim — Istatistikler, SmartCoach, ruh hali, XP/Level/Achievement
+// Hedeflerim — İstatistikler, SmartCoach, ruh hali, XP/Level/Achievement
 // Extracted from app-v5.js
 
 let pendingMoodValue = null;
@@ -157,13 +157,58 @@ function checkAchievements() {
     return newBadgeEarned;
 }
 
+// ===== Mood Icons (custom SVG) =====
+
+const MOOD_CONFIGS = {
+    1: { bg: '#e74c3c', label: 'Zor bir gün' },
+    2: { bg: '#e67e22', label: 'Düşük enerji' },
+    3: { bg: '#facc15', label: 'Normal' },
+    4: { bg: '#4ade80', label: 'İyi' },
+    5: { bg: '#22c55e', label: 'Harika' }
+};
+
+function getMoodEyesSvg(type) {
+    if (type === 'closed') {
+        return '<path d="M17 27 Q21 30 25 27 M39 27 Q43 30 47 27" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+    }
+    if (type === 'sparkle') {
+        return '<circle cx="21" cy="27" r="2.6" fill="#fff"/><circle cx="43" cy="27" r="2.6" fill="#fff"/>' +
+            '<path d="M21 19v3 M21 32v3 M13 27h3 M26 27h3 M43 19v3 M43 32v3 M35 27h3 M48 27h3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>';
+    }
+    return '<circle cx="21" cy="27" r="3.2" fill="#fff"/><circle cx="43" cy="27" r="3.2" fill="#fff"/>';
+}
+
+function getMoodMouthSvg(type) {
+    if (type === 'down') return '<path d="M20 46 Q32 39 44 46" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/>';
+    if (type === 'flat') return '<path d="M23 44 H41" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>';
+    if (type === 'smile') {
+        return '<path d="M20 42 Q32 50 44 42" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+            '<circle cx="15" cy="36" r="3" fill="rgba(255,255,255,0.35)"/><circle cx="49" cy="36" r="3" fill="rgba(255,255,255,0.35)"/>';
+    }
+    return '<path d="M18 42 Q32 55 46 42" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="15" cy="36" r="3.4" fill="rgba(255,255,255,0.35)"/><circle cx="49" cy="36" r="3.4" fill="rgba(255,255,255,0.35)"/>';
+}
+
+function getMoodIconSvg(value) {
+    const v = Number(value) || 3;
+    const cfg = MOOD_CONFIGS[v] || MOOD_CONFIGS[3];
+    const eyesType = v <= 2 ? 'closed' : (v === 5 ? 'sparkle' : 'dot');
+    const mouthType = v <= 1 ? 'down' : (v === 2 ? 'flat' : (v === 3 ? 'flat' : (v === 4 ? 'smile' : 'big')));
+    return '<svg class="mood-icon" viewBox="0 0 64 64" role="img" aria-label="' + cfg.label + '">' +
+        '<circle cx="32" cy="32" r="30" fill="' + cfg.bg + '"/>' +
+        '<circle cx="32" cy="32" r="28.5" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="1.5"/>' +
+        getMoodEyesSvg(eyesType) +
+        getMoodMouthSvg(mouthType) +
+        '</svg>';
+}
+
 function getMoodMeta(value) {
     const safeValue = Number(value);
-    if (safeValue <= 1) return { icon: '\uD83D\uDE1E', title: 'Zor bir gun' };
-    if (safeValue === 2) return { icon: '\uD83D\uDE14', title: 'Dusuk enerji' };
-    if (safeValue === 3) return { icon: '\uD83D\uDE10', title: 'Normal' };
-    if (safeValue === 4) return { icon: '\uD83D\uDE0A', title: 'Iyi' };
-    return { icon: '\uD83E\uDD29', title: 'Harika' };
+    if (safeValue <= 1) return { icon: getMoodIconSvg(1), title: 'Zor bir gün' };
+    if (safeValue === 2) return { icon: getMoodIconSvg(2), title: 'Düşük enerji' };
+    if (safeValue === 3) return { icon: getMoodIconSvg(3), title: 'Normal' };
+    if (safeValue === 4) return { icon: getMoodIconSvg(4), title: 'İyi' };
+    return { icon: getMoodIconSvg(5), title: 'Harika' };
 }
 
 function getMoodEntriesForYear(year) {
@@ -202,35 +247,28 @@ function renderMoodTracker() {
     const currentMood = window.appData.moods[today];
 
     if (currentMood) {
-        const moods = [
-            { val: 1, icon: '\uD83D\uDE1E', title: 'Zor bir gun' },
-            { val: 2, icon: '\uD83D\uDE14', title: 'Dusuk enerji' },
-            { val: 3, icon: '\uD83D\uDE10', title: 'Normal' },
-            { val: 4, icon: '\uD83D\uDE0A', title: 'Iyi' },
-            { val: 5, icon: '\uD83E\uDD29', title: 'Harika' }
-        ];
-        const info = moods.find(m => m.val === currentMood.value) || moods[2];
+        const info = getMoodMeta(currentMood.value);
         const noteHtml = currentMood.note
             ? '<div class="mood-note-display">"' + safeText(currentMood.note) + '"</div>'
             : '';
 
         container.innerHTML = '<div class="mood-summary">' +
-            '<div style="font-size: 3rem;">' + info.icon + '</div>' +
+            '<div class="mood-summary-icon">' + info.icon + '</div>' +
             '<div>' + info.title + '</div>' +
             noteHtml +
-            '<button class="btn-text" onclick="window.resetMood(\'' + today + '\')">Degistir</button>' +
+            '<button class="btn-text" onclick="window.resetMood(\'' + today + '\')">Değiştir</button>' +
             '</div>';
     } else {
-        container.innerHTML = '<div class="mood-title">Bugun nasil hissediyorsun?</div>' +
+        container.innerHTML = '<div class="mood-title">Bugün nasıl hissediyorsun?</div>' +
             '<div class="mood-options">' +
-            '<button class="mood-btn" onclick="window.selectMood(1)">\uD83D\uDE1E</button>' +
-            '<button class="mood-btn" onclick="window.selectMood(2)">\uD83D\uDE14</button>' +
-            '<button class="mood-btn" onclick="window.selectMood(3)">\uD83D\uDE10</button>' +
-            '<button class="mood-btn" onclick="window.selectMood(4)">\uD83D\uDE0A</button>' +
-            '<button class="mood-btn" onclick="window.selectMood(5)">\uD83E\uDD29</button>' +
+            '<button class="mood-btn" onclick="window.selectMood(1)" title="Zor bir gün">' + getMoodIconSvg(1) + '</button>' +
+            '<button class="mood-btn" onclick="window.selectMood(2)" title="Düşük enerji">' + getMoodIconSvg(2) + '</button>' +
+            '<button class="mood-btn" onclick="window.selectMood(3)" title="Normal">' + getMoodIconSvg(3) + '</button>' +
+            '<button class="mood-btn" onclick="window.selectMood(4)" title="İyi">' + getMoodIconSvg(4) + '</button>' +
+            '<button class="mood-btn" onclick="window.selectMood(5)" title="Harika">' + getMoodIconSvg(5) + '</button>' +
             '</div>' +
             '<div id="moodNoteContainer" class="mood-note-container" style="display:none;">' +
-            '<textarea id="moodNoteInput" class="mood-note-input" placeholder="Bugun neden boyle hissediyorsun? (opsiyonel)"></textarea>' +
+            '<textarea id="moodNoteInput" class="mood-note-input" placeholder="Bugün neden böyle hissediyorsun? (opsiyonel)"></textarea>' +
             '<button class="btn btn-primary" style="margin-top:8px;" onclick="window.confirmMood()">Kaydet</button>' +
             '</div>';
     }
@@ -262,7 +300,7 @@ function saveMoodWithNote(val, note) {
     window.saveData();
     renderMoodTracker();
     window.addXP(10);
-    window.showToast('Mod kaydedildi! +10 XP');
+    window.showToast('Ruh hali kaydedildi! +10 XP');
     window.triggerConfetti();
 }
 
@@ -294,10 +332,10 @@ const SmartCoach = {
         const books = window.appData.books || [];
         const moods = window.appData.moods || {};
         const insights = [];
-        const dayNames = ['Pazar', 'Pazartesi', 'Sali', 'Carsamba', 'Persembe', 'Cuma', 'Cumartesi'];
+        const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
         if (habits.length === 0) {
-            return 'Analiz icin once birkac aliskanlik ekle. Ilk kucuk adim, en guclu baslangictir.';
+            return 'Analiz için önce birkaç alışkanlık ekle. İlk küçük adım, en güçlü başlangıçtır.';
         }
 
         const today = new Date();
@@ -363,7 +401,7 @@ const SmartCoach = {
 
         const riskyHabit = habits
             .map(h => ({
-                name: (h.name || 'Aliskanlik').trim(),
+                name: (h.name || 'Alışkanlık').trim(),
                 streak: window.calculateStreak(h.completions || {}),
                 doneToday: window.isCompletionDone((h.completions || {})[todayStr])
             }))
@@ -408,21 +446,21 @@ const SmartCoach = {
             const remaining = todayPlanned - todayDone;
             insights.push({
                 priority: 100,
-                text: 'Bugun ' + todayDone + '/' + todayPlanned + ' aliskanlik tamamlandi. Kalan ' + remaining + ' adimi bitirirsen gunu guclu kapatirsin.'
+                text: 'Bugün ' + todayDone + '/' + todayPlanned + ' alışkanlık tamamlandı. Kalan ' + remaining + ' adımı bitirirsen günü güçlü kapatırsın.'
             });
         }
 
         if (riskSnapshot.score >= 60) {
             insights.push({
                 priority: 92,
-                text: 'Kacirma riski %' + riskSnapshot.score + '. ' + riskSnapshot.reason + ' Akilli hatirlatma saati: ' + riskSnapshot.suggestedTime + '.'
+                text: 'Kaçırma riski %' + riskSnapshot.score + '. ' + riskSnapshot.reason + ' Akıllı hatırlatma saati: ' + riskSnapshot.suggestedTime + '.'
             });
         }
 
         if (riskyHabit) {
             insights.push({
                 priority: 95,
-                text: '"' + riskyHabit.name + '" icin ' + riskyHabit.streak + ' gunluk seri var. Bugun tek bir tekrar seriyi korur.'
+                text: '"' + riskyHabit.name + '" için ' + riskyHabit.streak + ' günlük seri var. Bugün tek bir tekrar seriyi korur.'
             });
         }
 
@@ -430,17 +468,17 @@ const SmartCoach = {
             if (completionRate14 < 45) {
                 insights.push({
                     priority: 90,
-                    text: 'Son 14 gun basari oranin %' + completionRate14 + '. Hedefleri gecici olarak kucultmek surdurulebilirligi artirir.'
+                    text: 'Son 14 gün başarı oranın %' + completionRate14 + '. Hedefleri geçici olarak küçültmek sürdürülebilirliği artırır.'
                 });
             } else if (completionRate14 < 70) {
                 insights.push({
                     priority: 78,
-                    text: 'Son 14 gun basari oranin %' + completionRate14 + '. Duzen var; bugun tek bir ekstra tamamlamayla ivmeyi artirabilirsin.'
+                    text: 'Son 14 gün başarı oranın %' + completionRate14 + '. Düzen var; bugün tek bir ekstra tamamlamayla ivmeyi artırabilirsin.'
                 });
             } else if (completionRate14 >= 85) {
                 insights.push({
                     priority: 65,
-                    text: 'Son 14 gun basari oranin %' + completionRate14 + '. Ritim cok iyi, ayni duzeni koru.'
+                    text: 'Son 14 gün başarı oranın %' + completionRate14 + '. Ritim çok iyi, aynı düzeni koru.'
                 });
             }
         }
@@ -448,54 +486,54 @@ const SmartCoach = {
         if (weakestDayIndex !== -1 && weakestDayRate < 60) {
             insights.push({
                 priority: 74,
-                text: dayNames[weakestDayIndex] + ' gunleri basari oranin %' + weakestDayRate + '. O gun icin daha kisa bir minimum plan tanimla.'
+                text: dayNames[weakestDayIndex] + ' günleri başarı oranın %' + weakestDayRate + '. O gün için daha kısa bir minimum plan tanımla.'
             });
         }
 
         if (moodAverage !== null && moodAverage <= 2.6 && lowMoodMissRate !== null && lowMoodMissRate >= 55) {
             insights.push({
                 priority: 72,
-                text: 'Son 7 gun ruh hali ortalaman ' + moodAverage + '. Dusuk enerjili gunlerde kacirma orani %' + lowMoodMissRate + '; bu gunler icin mini hedef kullan.'
+                text: 'Son 7 gün ruh hali ortalaman ' + moodAverage + '. Düşük enerjili günlerde kaçırma oranı %' + lowMoodMissRate + '; bu günler için mini hedef kullan.'
             });
         }
 
         if (mostBehindWeeklyHabit && mostBehindWeeklyRemaining > 0) {
-            const habitName = (mostBehindWeeklyHabit.name || 'Haftalik aliskanlik').trim();
+            const habitName = (mostBehindWeeklyHabit.name || 'Haftalık alışkanlık').trim();
             insights.push({
                 priority: 70,
-                text: '"' + habitName + '" haftalik hedefinde ' + mostBehindWeeklyRemaining + ' adim kaldi. Haftayi kapatmak icin bugun bir adim ekle.'
+                text: '"' + habitName + '" haftalık hedefinde ' + mostBehindWeeklyRemaining + ' adım kaldı. Haftayı kapatmak için bugün bir adım ekle.'
             });
         }
 
         if (pendingTodos >= 5) {
             insights.push({
                 priority: 60,
-                text: 'Bekleyen ' + pendingTodos + ' gorev var. Once 10 dakikada bitecek 1 gorevi tamamla.'
+                text: 'Bekleyen ' + pendingTodos + ' görev var. Önce 10 dakikada bitecek 1 görevi tamamla.'
             });
         }
 
         if (readingBooks > 0) {
             insights.push({
                 priority: 45,
-                text: 'Okumakta oldugun ' + readingBooks + ' kitap var. Bugun kisa bir okuma seansi ivmeni korur.'
+                text: 'Okumakta olduğun ' + readingBooks + ' kitap var. Bugün kısa bir okuma seansı ivmeni korur.'
             });
         }
 
         insights.sort((a, b) => b.priority - a.priority);
-        const primary = insights[0]?.text || 'Bugun duzenini koruman icin tek bir kucuk adim yeterli.';
+        const primary = insights[0]?.text || 'Bugün düzenini koruman için tek bir küçük adım yeterli.';
         const secondary = insights[1]?.text;
 
-        let actionPlan = 'Bugun icin plan: ';
+        let actionPlan = 'Bugün için plan: ';
         if (riskyHabit) {
-            actionPlan += '"' + riskyHabit.name + '" aliskanligini simdi tamamla.';
+            actionPlan += '"' + riskyHabit.name + '" alışkanlığını şimdi tamamla.';
         } else if (todayPlanned > todayDone) {
-            actionPlan += 'kalan ' + (todayPlanned - todayDone) + ' adimdan en kolay olanla basla.';
+            actionPlan += 'kalan ' + (todayPlanned - todayDone) + ' adımdan en kolay olanla başla.';
         } else if (pendingTodos > 0) {
-            actionPlan += 'listeden en kisa gorevi simdi bitir.';
+            actionPlan += 'listeden en kısa görevi şimdi bitir.';
         } else if (readingBooks > 0) {
-            actionPlan += 'okudugun kitaptan 10 dakika ilerle.';
+            actionPlan += 'okuduğun kitaptan 10 dakika ilerle.';
         } else {
-            actionPlan += 'yarin icin tek net hedef yaz.';
+            actionPlan += 'yarın için tek net hedef yaz.';
         }
 
         return secondary ? (primary + ' ' + secondary + ' ' + actionPlan) : (primary + ' ' + actionPlan);
@@ -569,7 +607,7 @@ function computeWeeklyPerformanceInsights(now = new Date()) {
         });
     });
 
-    const dayNames = ['Pazar', 'Pazartesi', 'Sali', 'Carsamba', 'Persembe', 'Cuma', 'Cumartesi'];
+    const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
     const rankedDays = dayCounts
         .map((count, index) => ({ index, count }))
         .filter(item => item.count > 0)
@@ -624,7 +662,7 @@ function renderWeeklySummary() {
         });
     }
 
-    const days = ['Pazar', 'Pazartesi', 'Sali', 'Carsamba', 'Persembe', 'Cuma', 'Cumartesi'];
+    const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
     let bestDay = 'Pazartesi';
     let bestRate = 0;
     for (let i = 0; i < 7; i++) {
@@ -640,10 +678,10 @@ function renderWeeklySummary() {
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     const perfInsights = computeWeeklyPerformanceInsights(new Date());
 
-    statsEl.innerHTML = '<div class="weekly-stat-item"><span class="weekly-stat-value">' + completedTasks + '</span><span class="weekly-stat-label">Gorev Tamamlandi</span></div>' +
-        '<div class="weekly-stat-item"><span class="weekly-stat-value">%' + completionRate + '</span><span class="weekly-stat-label">Basari Orani</span></div>' +
-        '<div class="weekly-best-day">Haftanin en iyi gunu: <strong>' + bestDay + '</strong><br>' +
-        '<span class="weekly-insights-meta">En verimli gunler: ' + safeText(perfInsights.bestDaysText) + ' • En iyi saatler: ' + safeText(perfInsights.bestHoursText) + '</span></div>';
+    statsEl.innerHTML = '<div class="weekly-stat-item"><span class="weekly-stat-value">' + completedTasks + '</span><span class="weekly-stat-label">Görev Tamamlandı</span></div>' +
+        '<div class="weekly-stat-item"><span class="weekly-stat-value">%' + completionRate + '</span><span class="weekly-stat-label">Başarı Oranı</span></div>' +
+        '<div class="weekly-best-day">Haftanın en iyi günü: <strong>' + bestDay + '</strong><br>' +
+        '<span class="weekly-insights-meta">En verimli günler: ' + safeText(perfInsights.bestDaysText) + ' • En iyi saatler: ' + safeText(perfInsights.bestHoursText) + '</span></div>';
 
     container.style.display = 'block';
 }

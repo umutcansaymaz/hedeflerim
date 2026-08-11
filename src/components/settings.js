@@ -135,7 +135,7 @@ async function ensurePushSubscription(options = {}) {
         return false;
     }
     if (!window.WEB_PUSH_PUBLIC_KEY) {
-        if (!silent) window.showToast('Web push anahtari yapilandirilmamis');
+        if (!silent) window.showToast('Web push anahtarı yapılandırılmamış');
         return false;
     }
     if (Notification.permission !== 'granted') {

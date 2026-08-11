@@ -67,7 +67,7 @@ try {
             if (user && user.email && !ALLOWED_EMAILS.includes(user.email)) {
                 window.debugWarn('Unauthorized login attempt blocked: ' + user.email);
                 signOut(auth).then(() => {
-                    window.showToast('Giris izniniz yok: ' + user.email + '. Izinli hesaplar: ' + (ALLOWED_EMAILS.join(', ') || 'bos'));
+                    window.showToast('Giriş izniniz yok: ' + user.email + '. İzinli hesaplar: ' + (ALLOWED_EMAILS.join(', ') || 'boş'));
                 });
                 window.currentUser = null;
                 window.updateAuthUI(null);

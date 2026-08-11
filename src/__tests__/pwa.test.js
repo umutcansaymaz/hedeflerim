@@ -90,7 +90,7 @@ describe('firebase.json (hosting headerları)', () => {
   const headers = config.hosting.headers || [];
 
   it('sw.js no-cache kuralı (bayat sürüm sorununun kök çözümü)', () => {
-    const rule = headers.find(h => h.source === '/sw.js');
+    const rule = headers.find(h => h.source === '**/sw.js' || h.source === '/sw.js');
     expect(rule).toBeTruthy();
     const cacheControl = (rule.headers || []).find(h => h.key === 'Cache-Control');
     expect(cacheControl.value).toContain('no-cache');

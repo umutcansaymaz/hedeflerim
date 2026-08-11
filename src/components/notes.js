@@ -245,8 +245,8 @@ function renderNotes() {
 
     if (notesToRender.length === 0) {
         const emptyReason = (window.noteSearchQuery || window.currentNoteDateFilter !== 'all' || window.currentNoteFilter !== 'all')
-            ? 'Arama veya filtreleri degistirerek tekrar dene.'
-            : 'Henuz not eklenmedi. Sag alttaki + ile ilk notunu olustur.';
+            ? 'Arama veya filtreleri değiştirerek tekrar dene.'
+            : 'Henüz not eklenmedi. Sağ alttaki + ile ilk notunu oluştur.';
         notesGrid.innerHTML = `
              <div class="empty-state">
                  <div class="animated-empty-icon">
@@ -282,7 +282,7 @@ function renderNotes() {
                     <div class="note-title">${safeTitle}</div>
                     <div class="note-card-actions">
                         <button class="${pinClass}" onclick="event.stopPropagation(); window.toggleNotePinned(window.decodeJsSingleQuote('${safeNoteId}'));" title="Sabitle">\uD83D\uDCCC</button>
-                        <button class="${archiveClass}" onclick="event.stopPropagation(); window.toggleNoteArchived(window.decodeJsSingleQuote('${safeNoteId}'));" title="Arsiv">\uD83D\uDCC4</button>
+                        <button class="${archiveClass}" onclick="event.stopPropagation(); window.toggleNoteArchived(window.decodeJsSingleQuote('${safeNoteId}'));" title="Arşiv">\uD83D\uDCC4</button>
                     </div>
                 </div>
                 <div class="note-preview">${safeContent}</div>
@@ -503,7 +503,7 @@ function openNoteModal(note = null, preSelectedCategory = 'general', prefill = n
     const deleteBtn = document.getElementById('deleteNoteBtn');
 
     if (note) {
-        modalTitle.textContent = 'Notu Duzenle';
+        modalTitle.textContent = 'Notu Düzenle';
         titleInput.value = note.title || '';
         contentInput.value = note.content || '';
         categoryInput.value = note.category || 'general';
@@ -548,7 +548,7 @@ function saveNote() {
                 color,
                 updatedAt: new Date().toISOString()
             };
-            window.showToast('Not guncellendi');
+            window.showToast('Not güncellendi');
         }
     } else {
         const newNote = {
@@ -623,7 +623,7 @@ function startVoiceRecognition() {
     recognition.onstart = function () {
         isRecording = true;
         btn.classList.add('recording');
-        btnText.textContent = 'Dinliyorum... (Durdurmak icin bas)';
+        btnText.textContent = 'Dinliyorum... (Durdurmak için bas)';
     };
 
     recognition.onerror = function () {

@@ -1,5 +1,5 @@
 // ===== Progress Component =====
-// Hedeflerim — Ilerleme, heatmap, basarimlar
+// Hedeflerim — İlerleme, heatmap, başarımlar
 // Extracted from app-v5.js
 
 // ===== Collapsible Card Helpers =====
@@ -127,7 +127,7 @@ function _buildActivityMap(year, startDate, endDate, today) {
 }
 
 function _renderHeatmapGrid(activityMap, startDate, year, today) {
-    const months = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     const endDate = new Date(year, 11, 31);
 
     let gridStart = new Date(year, 0, 1);
@@ -161,7 +161,7 @@ function _renderHeatmapGrid(activityMap, startDate, year, today) {
         }
 
         const isOutOfRange = d < startDate || d > today;
-        const title = isOutOfRange ? '' : d.toLocaleDateString('tr-TR') + ' - ' + activity + ' aliskanlik';
+        const title = isOutOfRange ? '' : d.toLocaleDateString('tr-TR') + ' - ' + activity + ' alışkanlık';
 
         cellsHtml += '<div class="heatmap-cell level-' + (isOutOfRange ? 0 : level) + '"' + (title ? ' title="' + title + '"' : '') + '></div>';
 
@@ -181,8 +181,8 @@ function _renderHeatmapGrid(activityMap, startDate, year, today) {
 
 function _renderHeatmapStats(totalActiveDays, currentStreak, longestStreak) {
     return '<div class="heatmap-stats">' +
-        '<div class="heatmap-stat"><div class="heatmap-stat-value">' + totalActiveDays + '</div><div class="heatmap-stat-label">Aktif Gun</div></div>' +
-        '<div class="heatmap-stat"><div class="heatmap-stat-value">' + currentStreak + '</div><div class="heatmap-stat-label">Guncel Seri</div></div>' +
+        '<div class="heatmap-stat"><div class="heatmap-stat-value">' + totalActiveDays + '</div><div class="heatmap-stat-label">Aktif Gün</div></div>' +
+        '<div class="heatmap-stat"><div class="heatmap-stat-value">' + currentStreak + '</div><div class="heatmap-stat-label">Güncel Seri</div></div>' +
         '<div class="heatmap-stat"><div class="heatmap-stat-value">' + longestStreak + '</div><div class="heatmap-stat-label">En Uzun Seri</div></div>' +
         '</div>';
 }
@@ -193,14 +193,14 @@ function renderHeatmap(year) {
         ? new Date(today.getFullYear(), Math.max(0, today.getMonth() - 5), 1)
         : new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);
-    const days = ['Pzt', '', 'Car', '', 'Cum', '', 'Paz'];
+    const days = ['Pzt', '', 'Çar', '', 'Cum', '', 'Paz'];
 
     const { activityMap, totalActiveDays, currentStreak, longestStreak } = _buildActivityMap(year, startDate, endDate, today);
     const { monthsHtml, cellsHtml } = _renderHeatmapGrid(activityMap, startDate, year, today);
     const statsHtml = _renderHeatmapStats(totalActiveDays, currentStreak, longestStreak);
 
     return '<div class="heatmap-section">' +
-        '<div class="heatmap-title">' + year + ' Aktivite Haritasi</div>' +
+        '<div class="heatmap-title">' + year + ' Aktivite Haritası</div>' +
         '<div class="heatmap-scroll">' +
         '<div style="min-width: max-content">' +
         monthsHtml +
@@ -216,19 +216,19 @@ function renderHeatmap(year) {
         '<div class="heatmap-cell level-2"></div>' +
         '<div class="heatmap-cell level-3"></div>' +
         '<div class="heatmap-cell level-4"></div>' +
-        '</div><span>Cok</span></div>' +
+        '</div><span>Çok</span></div>' +
         statsHtml + '</div>';
 }
 
 // ===== Life Balance =====
 function renderLifeBalance() {
     const categoryLabels = {
-        health: { name: 'Saglik', color: '#10B981' },
+        health: { name: 'Sağlık', color: '#10B981' },
         career: { name: 'Kariyer', color: '#3B82F6' },
-        education: { name: 'Egitim', color: '#8B5CF6' },
+        education: { name: 'Eğitim', color: '#8B5CF6' },
         spiritual: { name: 'Maneviyat', color: '#F59E0B' },
         social: { name: 'Sosyal', color: '#EC4899' },
-        creativity: { name: 'Yaraticilik', color: '#06B6D4' },
+        creativity: { name: 'Yaratıcılık', color: '#06B6D4' },
         finance: { name: 'Finans', color: '#EF4444' }
     };
 
@@ -245,7 +245,7 @@ function renderLifeBalance() {
     if (totalCategorized === 0) {
         return '<div class="life-balance-section">' +
             '<div class="life-balance-title">Hayat Dengesi</div>' +
-            '<div class="life-balance-empty">Henuz kategorize edilmis aliskanlik yok.<br>Aliskanliklarina kategori ekleyerek denge dairesini olustur.</div>' +
+            '<div class="life-balance-empty">Henüz kategorize edilmiş alışkanlık yok.<br>Alışkanlıklarına kategori ekleyerek denge dairesini oluştur.</div>' +
             '</div>';
     }
 
@@ -282,7 +282,7 @@ function renderLifeBalance() {
         '<div class="life-balance-content">' +
         '<div class="life-balance-chart-panel">' +
         '<div class="life-balance-chart" style="background: ' + gradient + '">' +
-        '<div class="life-balance-chart-inner"><strong>' + totalCategorized + '</strong><span>Aliskanlik</span></div>' +
+        '<div class="life-balance-chart-inner"><strong>' + totalCategorized + '</strong><span>Alışkanlık</span></div>' +
         '</div>' +
         '<div class="life-balance-meta">' +
         '<span>' + totalCategoryCount + ' kategori aktif</span>' +
@@ -302,7 +302,7 @@ function renderAchievements() {
         const isUnlocked = earnedBadgeIds.has(def.id);
         const earnedDate = isUnlocked ? window.appData.achievements.find(a => a.id === def.id).date : null;
         const dateStr = earnedDate ? new Date(earnedDate).toLocaleDateString('tr-TR') : '';
-        const title = isUnlocked ? def.title + '\n' + def.description + '\nKazanildi: ' + dateStr : '???\nBu rozet icin gorevi tamamla.';
+        const title = isUnlocked ? def.title + '\n' + def.description + '\nKazanıldı: ' + dateStr : '???\nBu rozet için görevi tamamla.';
 
         return '<div class="achievement-card' + (isUnlocked ? ' unlocked' : '') + '" title="' + title + '">' +
             '<div class="achievement-icon">' + def.icon + '</div>' +
@@ -311,7 +311,7 @@ function renderAchievements() {
     }).join('');
 
     return '<div class="achievements-section">' +
-        '<div class="achievements-title">Basari Muzesi <span style="font-size:0.8rem; color:var(--text-secondary); margin-left:auto;">' + earnedBadgeIds.size + '/' + window.ACHIEVEMENT_DEFINITIONS.length + '</span></div>' +
+        '<div class="achievements-title">Başarı Müzesi <span style="font-size:0.8rem; color:var(--text-secondary); margin-left:auto;">' + earnedBadgeIds.size + '/' + window.ACHIEVEMENT_DEFINITIONS.length + '</span></div>' +
         '<div class="achievements-grid">' + badgesHtml + '</div>' +
         '</div>';
 }
@@ -395,18 +395,18 @@ function renderMoodHistory(year) {
     const entries = window.getMoodEntriesForYear(year);
     const cardKey = 'moodHistory';
     const expanded = getProgressCardExpanded(cardKey, false);
-    const months = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     const isCurrentYear = year === new Date().getFullYear();
     const maxListItems = 10;
 
     if (entries.length === 0) {
         return '<div class="progress-card progress-collapsible-card ' + (expanded ? 'is-expanded' : 'is-collapsed') + '" data-progress-card="' + cardKey + '">' +
-            renderProgressCollapsibleToggle(cardKey, 'Ruh Hali Gecmisi', '0 kayit', expanded) +
+            renderProgressCollapsibleToggle(cardKey, 'Ruh Hali Geçmişi', '0 kayıt', expanded) +
             '<div class="progress-collapsible-body" id="' + getProgressCardBodyId(cardKey) + '" aria-hidden="' + !expanded + '">' +
             '<div class="mood-history-section"><div class="mood-history-empty">' +
-            '<div class="mood-history-empty-icon">📊</div>' +
-            '<h4>Henuz ruh hali kaydi yok</h4>' +
-            '<p>Her gun ruh halini kaydederek yil boyunca duygusal durumunu takip edebilirsin.</p>' +
+            '<div class="mood-history-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:48px;height:48px;"><path d="M4 20h16"/><rect x="6" y="12" width="3" height="6" rx="0.5" fill="currentColor" stroke="none"/><rect x="10.5" y="8" width="3" height="10" rx="0.5" fill="currentColor" stroke="none"/><rect x="15" y="4" width="3" height="14" rx="0.5" fill="currentColor" stroke="none"/></svg></div>' +
+            '<h4>Henüz ruh hali kaydı yok</h4>' +
+            '<p>Her gün ruh halini kaydederek yıl boyunca duygusal durumunu takip edebilirsin.</p>' +
             '</div></div></div></div>';
     }
 
@@ -447,26 +447,26 @@ function renderMoodHistory(year) {
             noteHtml + '</li>';
     }).join('');
 
-    const summary = total + ' kayit • Ortalama ' + average + '/5';
+    const summary = total + ' kayıt • Ortalama ' + average + '/5';
 
     return '<div class="progress-card progress-collapsible-card ' + (expanded ? 'is-expanded' : 'is-collapsed') + '" data-progress-card="' + cardKey + '">' +
-        renderProgressCollapsibleToggle(cardKey, 'Ruh Hali Gecmisi', summary, expanded) +
+        renderProgressCollapsibleToggle(cardKey, 'Ruh Hali Geçmişi', summary, expanded) +
         '<div class="progress-collapsible-body" id="' + getProgressCardBodyId(cardKey) + '" aria-hidden="' + !expanded + '">' +
         '<div class="mood-history-section">' +
         '<div class="mood-history-header"><div>' +
-        '<h3 class="mood-history-title">Ruh Hali Gecmisi</h3>' +
-        '<p class="mood-history-subtitle">' + year + ' yili ruh hali takibi</p></div>' +
-        '<span class="mood-history-count">' + total + ' kayit</span></div>' +
+        '<h3 class="mood-history-title">Ruh Hali Geçmişi</h3>' +
+        '<p class="mood-history-subtitle">' + year + ' yılı ruh hali takibi</p></div>' +
+        '<span class="mood-history-count">' + total + ' kayıt</span></div>' +
         '<div class="mood-history-stats">' +
-        '<div class="mood-history-stat-card"><div class="mood-history-stat-label">Ortalama Mod</div><div class="mood-history-stat-value">' + average + '/5</div></div>' +
-        '<div class="mood-history-stat-card"><div class="mood-history-stat-label">En Sik Ruh Hali</div><div class="mood-history-stat-value">' + topMeta.icon + ' ' + safeText(topMeta.title) + '</div></div>' +
-        '<div class="mood-history-stat-card"><div class="mood-history-stat-label">Toplam Kayit</div><div class="mood-history-stat-value">' + total + ' gun</div></div>' +
+        '<div class="mood-history-stat-card"><div class="mood-history-stat-label">Ortalama Ruh Hali</div><div class="mood-history-stat-value">' + average + '/5</div></div>' +
+        '<div class="mood-history-stat-card"><div class="mood-history-stat-label">En Sık Ruh Hali</div><div class="mood-history-stat-value">' + topMeta.icon + ' ' + safeText(topMeta.title) + '</div></div>' +
+        '<div class="mood-history-stat-card"><div class="mood-history-stat-label">Toplam Kayıt</div><div class="mood-history-stat-value">' + total + ' gün</div></div>' +
         '</div>' +
-        '<div class="mood-history-chart"><div class="mood-history-chart-title">Aylik Ortalama Ruh Hali</div>' +
+        '<div class="mood-history-chart"><div class="mood-history-chart-title">Aylık Ortalama Ruh Hali</div>' +
         '<div class="mood-history-bars">' + barHtml + '</div></div>' +
-        '<div class="mood-history-list-wrap"><div class="mood-history-list-title">Son Kayitlar</div>' +
+        '<div class="mood-history-list-wrap"><div class="mood-history-list-title">Son Kayıtlar</div>' +
         '<ul class="mood-history-list">' + listHtml + '</ul>' +
-        (remaining > 0 ? '<div class="mood-history-more">+' + remaining + ' daha eski kayit</div>' : '') +
+        (remaining > 0 ? '<div class="mood-history-more">+' + remaining + ' daha eski kayıt</div>' : '') +
         '</div></div></div></div>';
 }
 
@@ -492,11 +492,11 @@ function _buildHabitProgressCards(selectedYear) {
         const maxMonthly = Math.max(...monthlyData, 1);
 
         const badges = [];
-        if (longestStreakVal >= 7) badges.push({ icon: '\uD83D\uDD25', title: '7 Gun', desc: 'Ilk hafta' });
-        if (longestStreakVal >= 30) badges.push({ icon: '\u26A1', title: '30 Gun', desc: 'Bir ay' });
-        if (longestStreakVal >= 100) badges.push({ icon: '\uD83C\uDFC6', title: '100 Gun', desc: 'Efsanevi' });
-        if (totalDays >= 50) badges.push({ icon: '\uD83D\uDCC5', title: '50 Gun', desc: 'Iyi tempo' });
-        if (totalDays >= 100) badges.push({ icon: '\uD83D\uDCAF', title: '100 Gun+', desc: 'Harika' });
+        if (longestStreakVal >= 7) badges.push({ icon: '\uD83D\uDD25', title: '7 Gün', desc: 'İlk hafta' });
+        if (longestStreakVal >= 30) badges.push({ icon: '\u26A1', title: '30 Gün', desc: 'Bir ay' });
+        if (longestStreakVal >= 100) badges.push({ icon: '\uD83C\uDFC6', title: '100 Gün', desc: 'Efsanevi' });
+        if (totalDays >= 50) badges.push({ icon: '\uD83D\uDCC5', title: '50 Gün', desc: 'İyi tempo' });
+        if (totalDays >= 100) badges.push({ icon: '\uD83D\uDCAF', title: '100 Gün+', desc: 'Harika' });
 
 const badgesHtml = badges.length > 0
             ? '<div class="badges-container">' + badges.map(b => '<div class="badge" title="' + safeText(b.desc) + '"><span class="badge-icon">' + b.icon + '</span><span class="badge-title">' + safeText(b.title) + '</span></div>').join('') + '</div>'
@@ -509,13 +509,13 @@ const badgesHtml = badges.length > 0
         lastWeekDates.forEach(d => { if (window.isCompletionDone(habit.completions?.[window.formatDate(d)])) lastWeekCount++; });
         const weekDiff = thisWeekCount - lastWeekCount;
         const weekCompareHtml = '<div class="week-compare">' +
-            '<span class="week-compare-label">Bu hafta vs gecen hafta:</span>' +
+            '<span class="week-compare-label">Bu hafta vs geçen hafta:</span>' +
             '<span class="week-compare-value ' + (weekDiff > 0 ? 'up' : weekDiff < 0 ? 'down' : '') + '">' +
             thisWeekCount + ' vs ' + lastWeekCount +
             (weekDiff > 0 ? ' (+' + weekDiff + ')' : weekDiff < 0 ? ' (-' + Math.abs(weekDiff) + ')' : '') +
             '</span></div>';
 
-        const months = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
         const monthBars = monthlyData.map((count, i) => {
             const height = (count / maxMonthly) * 100;
             const isCurrent = i === new Date().getMonth() && selectedYear === new Date().getFullYear();
@@ -534,13 +534,13 @@ const badgesHtml = badges.length > 0
             '</div>' +
             badgesHtml +
             '<div class="progress-stats">' +
-            '<div class="stat-item"><div class="stat-value">' + totalDays + '</div><div class="stat-label">Toplam Gun</div></div>' +
-            '<div class="stat-item streak"><div class="stat-value">' + currentStreakVal + ' \uD83D\uDD25</div><div class="stat-label">Guncel Seri</div></div>' +
+            '<div class="stat-item"><div class="stat-value">' + totalDays + '</div><div class="stat-label">Toplam Gün</div></div>' +
+            '<div class="stat-item streak"><div class="stat-value">' + currentStreakVal + ' \uD83D\uDD25</div><div class="stat-label">Güncel Seri</div></div>' +
             '<div class="stat-item"><div class="stat-value">' + longestStreakVal + '</div><div class="stat-label">En Uzun Seri</div></div>' +
             '</div>' +
             weekCompareHtml +
             '<div class="progress-chart">' +
-            '<div class="chart-title">Aylik Ilerleme</div>' +
+            '<div class="chart-title">Aylık İlerleme</div>' +
             '<div class="bar-chart">' + monthBars + '</div>' +
             '</div></div>';
     }).join('');
@@ -560,8 +560,8 @@ function renderProgress() {
         container.innerHTML = weeklyPlannerHtml + focusWeeklyHtml + focusPastWeeksHtml + moodHistoryHtml +
             '<div class="empty-state">' +
             '<div class="empty-state-icon">DATA</div>' +
-            '<h3>Henuz veri yok</h3>' +
-            '<p>Aliskanlik ekleyip takibe basla</p></div>';
+            '<h3>Henüz veri yok</h3>' +
+            '<p>Alışkanlık ekleyip takibe başla</p></div>';
         updateProgressCardCollapseDom(container);
         return;
     }
