@@ -15,8 +15,9 @@ function read(rel) {
 describe('sw.js (Service Worker)', () => {
   const sw = read('sw.js');
 
-  it('CACHE_NAME sürümü v11.0 (eski cache isimlerinden farklı)', () => {
-    expect(sw).toContain("const CACHE_NAME = 'habit-tracker-v11.0-frontend-prod'");
+  it('CACHE_NAME v11.0 nesli (predeploy damgası ile her deployda yenilenir)', () => {
+    expect(sw).toMatch(/const CACHE_NAME = 'habit-tracker-v11\.0-[^']*';/);
+    expect(sw).not.toMatch(/habit-tracker-v1[0-9]\.0-frontend-prod/);
   });
 
   it('network-first stratejisi (fetch event + cache fallback)', () => {
@@ -39,7 +40,16 @@ describe('sw.js (Service Worker)', () => {
   });
 
   it('eski cache isimlerini temizleyen temizlik mantığı var', () => {
-    expect(sw).toMatch(/caches\.delete|keys\(\).*forEach/s);
+    expect(sw).toMatch(/caches\.delete|keys\(\)\.forEach/s);
+  });
+
+  it('CACHE_NAME sürüm damgası formatı (predeploy bump ile her deployda değişir)', () => {
+    expect(sw).toMatch(/const CACHE_NAME = 'habit-tracker-v11\.0-\d+-prod';/);
+  });
+
+  it('push mesajı Türkçe karakterlerle (ASCII transkripsiyon yasak)', () => {
+    expect(sw).toContain('Bugün alışkanlıklarını takip etmeyi unutma.');
+    expect(sw).not.toContain('Bugun aliskanliklarini');
   });
 });
 

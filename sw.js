@@ -1,4 +1,4 @@
-const CACHE_NAME = 'habit-tracker-v11.0-frontend-prod';
+const CACHE_NAME = 'habit-tracker-v11.0-1786464595131-prod';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -98,7 +98,7 @@ self.addEventListener('push', event => {
 
     const title = data.title || 'Hedeflerim Hatirlatici';
     const options = {
-        body: data.body || 'Bugun aliskanliklarini takip etmeyi unutma.',
+        body: data.body || 'Bugün alışkanlıklarını takip etmeyi unutma.',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
         vibrate: [200, 100, 200],
