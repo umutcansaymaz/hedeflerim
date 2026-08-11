@@ -29,6 +29,147 @@ function loadTheme() {
     }
 }
 
+// ----- Notification / Push Functions -----
+
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        window.showToast('Bu tarayıcı bildirimleri desteklemiyor');
+        return false;
+    }
+
+    if (Notification.permission === 'granted') {
+        return true;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+        window.showToast('Bildirimler açıldı');
+        return true;
+    } else {
+        window.showToast('Bildirim izni reddedildi');
+        return false;
+    }
+}
+
+function getPushDeviceId() {
+    let existing = '';
+    try {
+        existing = String(localStorage.getItem(window.PUSH_DEVICE_ID_STORAGE_KEY) || '').trim();
+    } catch {
+        existing = '';
+    }
+    if (existing) return existing;
+    const next = window.generateId();
+    try {
+        localStorage.setItem(window.PUSH_DEVICE_ID_STORAGE_KEY, next);
+    } catch {
+        // ignore
+    }
+    return next;
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(ch => ch.charCodeAt(0)));
+}
+
+function normalizePushSubscriptionPayload(subscription, options = {}) {
+    const raw = subscription && typeof subscription.toJSON === 'function'
+        ? subscription.toJSON()
+        : (subscription || {});
+    const keys = raw && raw.keys && typeof raw.keys === 'object' ? raw.keys : {};
+    const timezone = window.truncateText(
+        typeof options.timezone === 'string' && options.timezone
+            ? options.timezone
+            : (Intl.DateTimeFormat().resolvedOptions().timeZone || ''),
+        80
+    );
+    const locale = window.truncateText(
+        typeof options.locale === 'string' && options.locale ? options.locale : (navigator.language || ''),
+        24
+    );
+    return {
+        endpoint: window.truncateText(String(raw.endpoint || ''), 4096),
+        keys: {
+            p256dh: window.truncateText(String(keys.p256dh || ''), 512),
+            auth: window.truncateText(String(keys.auth || ''), 512)
+        },
+        timezone,
+        locale,
+        platform: window.truncateText(String(navigator.platform || ''), 64),
+        userAgent: window.truncateText(String(navigator.userAgent || ''), 320),
+        permission: window.truncateText(String(Notification.permission || 'default'), 16),
+        enabled: true
+    };
+}
+
+async function savePushSubscriptionToCloud(subscription, options = {}) {
+    if (!window.currentUser || !db || !subscription) return false;
+    const payload = normalizePushSubscriptionPayload(subscription, options);
+    if (!payload.endpoint || !payload.keys.p256dh || !payload.keys.auth) return false;
+
+    const nowIso = new Date().toISOString();
+    const deviceId = getPushDeviceId();
+    const ref = doc(db, 'users', window.currentUser.uid, 'pushSubscriptions', deviceId);
+
+    const existing = await getDoc(ref);
+    const base = {
+        ...payload,
+        updatedAt: nowIso
+    };
+    if (!existing.exists) {
+        base.createdAt = nowIso;
+    }
+
+    await setDoc(ref, base, { merge: true });
+    return true;
+}
+
+async function ensurePushSubscription(options = {}) {
+    const silent = options.silent === true;
+    if (!window.currentUser || !db) return false;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        if (!silent) window.showToast('Push bildirim bu cihazda desteklenmiyor');
+        return false;
+    }
+    if (!window.WEB_PUSH_PUBLIC_KEY) {
+        if (!silent) window.showToast('Web push anahtari yapilandirilmamis');
+        return false;
+    }
+    if (Notification.permission !== 'granted') {
+        return false;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(window.WEB_PUSH_PUBLIC_KEY)
+            });
+        }
+        if (!subscription) return false;
+
+        const saved = await savePushSubscriptionToCloud(subscription, {
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+            locale: navigator.language || ''
+        });
+        if (saved && !silent) {
+            window.showToast('Push bildirim kaydı tamamlandı');
+        }
+        return saved;
+    } catch (error) {
+        window.logAppError(error, { kind: 'push_subscribe' });
+        if (!silent) {
+            window.showToast(`Push kayıt hatası: ${String(error?.message || error || 'bilinmeyen hata')}`);
+        }
+        return false;
+    }
+}
+
 // ----- Reminder Functions -----
 
 function scheduleReminder(options = {}) {
@@ -296,6 +437,8 @@ window.setTheme = setTheme;
 window.loadTheme = loadTheme;
 window.scheduleReminder = scheduleReminder;
 window.refreshReminderSchedule = refreshReminderSchedule;
+window.requestNotificationPermission = requestNotificationPermission;
+window.ensurePushSubscription = ensurePushSubscription;
 window.checkReminder = checkReminder;
 window.showLocalNotification = showLocalNotification;
 window.computeMissRiskSnapshot = computeMissRiskSnapshot;
