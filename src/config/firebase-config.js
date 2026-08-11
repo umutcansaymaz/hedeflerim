@@ -2,7 +2,7 @@
 // Web config public'tir (client-side); veri güvenliği Firestore security rules ile sağlanır.
 window.HDEFLERIM_FIREBASE_CONFIG = {
     apiKey: "AIzaSyBd5utLyTQ62H886zrrycQqLBqelCq1vds",
-    authDomain: "hedeflerim-2026.web.app",
+    authDomain: "hedeflerim-2026.firebaseapp.com",
     projectId: "hedeflerim-2026",
     storageBucket: "hedeflerim-2026.firebasestorage.app",
     messagingSenderId: "116151097562",
