@@ -34,7 +34,9 @@ async function loginWithGoogle() {
         const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
         if (isStandalone) {
             window.debugWarn('PWA modu: giris Chrome sekmesindeki web surumune yonlendiriliyor');
-            window.open('https://hedeflerim-2026.web.app/?pwa_login=1', '_blank');
+            // Sabit domain yerine runtime origin: hosting domaini degisirse (orn. custom domain)
+            // yonlendirme otomatik olarak guncel kalir (ab6d5a8 config'ten okuma yaklasimiyla uyumlu)
+            window.open(window.location.origin + '/?pwa_login=1', '_blank');
             window.showToast('Chrome sekmesinde giriş yap; PWA\'ya döndüğünde oturum açılmış olacak');
             return;
         }

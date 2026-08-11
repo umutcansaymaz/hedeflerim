@@ -1,11 +1,12 @@
-const CACHE_NAME = 'habit-tracker-v10.1-frontend-prod';
+const CACHE_NAME = 'habit-tracker-v10.2-frontend-prod';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/style.css',
     '/manifest.json',
     '/icon-192.png',
-    '/icon-512.png'
+    '/icon-512.png',
+    '/src/config/firebase-config.js'
 ];
 
 // Install event - cache static assets and skip waiting immediately
@@ -41,8 +42,15 @@ self.addEventListener('fetch', event => {
     // Skip non-GET requests
     if (event.request.method !== 'GET') return;
 
-    // Skip cross-origin requests
-    if (!event.request.url.startsWith(self.location.origin)) return;
+    // Skip cross-origin requests (origin-exact match — prefix match ayni on ekli
+    // harici domainleri (orn. evil.com) yanlislikla same-origin kabul edebilir)
+    let requestUrl;
+    try {
+        requestUrl = new URL(event.request.url);
+    } catch {
+        return;
+    }
+    if (requestUrl.origin !== self.location.origin) return;
 
     // Firebase auth akisini SW'den muaf tut: /__/auth/ sayfalari cache'lenmemeli
     // (SW'nin cache/index.html fallback'i auth donusunu bozabilir)
@@ -54,9 +62,11 @@ self.addEventListener('fetch', event => {
                 // Got network response - cache it and return
                 if (networkResponse && networkResponse.status === 200) {
                     const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, responseToCache);
-                    });
+                    // Cache yazim hatasi (kota vb.) network yanitini bozmamali:
+                    // ayri .catch ile zincirden izole et (skill: sw cache put)
+                    caches.open(CACHE_NAME)
+                        .then(cache => cache.put(event.request, responseToCache))
+                        .catch(() => {});
                 }
                 return networkResponse;
             })
