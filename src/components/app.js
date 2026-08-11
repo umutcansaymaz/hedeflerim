@@ -18,15 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ===== Service Worker Registration =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(() => window.debugLog('SW registered'))
-            .catch(err => window.debugWarn('SW registration failed:', err));
-    });
-}
-
 // Uygulama açıldığında hatırlatıcıyı başlat (izin verildiyse)
 if (window.appData.settings?.notificationsEnabled) {
     window.refreshReminderSchedule();
@@ -573,12 +564,8 @@ function _initNotifications() {
         var timeInput = document.getElementById('reminderTime');
         if (!timeInput) return;
         window.appData.settings.reminderTime = timeInput.value;
-        var granted = await window.requestNotificationPermission();
-        if (granted) {
-            window.scheduleReminder();
-            await window.ensurePushSubscription({ silent: true });
-            enableBtn.textContent = 'Aktif';
-        }
+        window.scheduleReminder();
+        enableBtn.textContent = 'Aktif';
     });
     if (window.appData.settings?.reminderTime) {
         var reminderInput = document.getElementById('reminderTime');
@@ -588,7 +575,6 @@ function _initNotifications() {
         var notifBtn = document.getElementById('enableNotifications');
         if (notifBtn) notifBtn.textContent = 'Aktif';
         window.refreshReminderSchedule();
-        if (window.currentUser && Notification.permission === 'granted') window.ensurePushSubscription({ silent: true });
     }
 }
 
