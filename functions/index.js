@@ -6,7 +6,7 @@
 // trigger olarak yüklemeye çalışır.
 // ============================================================
 
-const { onSchedule } = require("firebase-functions/v2/scheduler");
+const functions = require("firebase-functions");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const webpush = require("web-push");
@@ -230,14 +230,11 @@ async function processUser(userDoc, now) {
 
 // ===== Ana Zamanlanmış Fonksiyon =====
 
-exports.sendScheduledReminders = onSchedule(
-  {
-    schedule: "every 15 minutes",
-    timeZone: "Etc/UTC",
-    timeoutSeconds: 540,
-    memory: "256MiB"
-  },
-  async () => {
+exports.sendScheduledReminders = functions
+  .runWith({ timeoutSeconds: 540 })
+  .pubsub.schedule("every 15 minutes")
+  .timeZone("Etc/UTC")
+  .onRun(async () => {
     if (!configureWebPush()) {
       return null;
     }

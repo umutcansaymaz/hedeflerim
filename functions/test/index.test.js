@@ -11,8 +11,16 @@ vi.mock("firebase-admin", () => ({
   firestore: { FieldValue: { serverTimestamp: () => ({}) } }
 }));
 
-vi.mock("firebase-functions/v2/scheduler", () => ({
-  onSchedule: (_options, handler) => handler
+vi.mock("firebase-functions", () => ({
+  runWith: () => ({
+    pubsub: {
+      schedule: () => ({
+        timeZone: () => ({
+          onRun: (handler) => handler
+        })
+      })
+    }
+  })
 }));
 
 vi.mock("firebase-functions/logger", () => ({
