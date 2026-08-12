@@ -10,5 +10,5 @@ window.HDEFLERIM_FIREBASE_CONFIG = {
     measurementId: ""
 };
 
-window.HDEFLERIM_ALLOWED_EMAILS = ["umutcansaymaz@gmail.com", "sulee.kocc8@gmail.com", "akilyorungesi@gmail.com", "kingdomofanimalsss@gmail.com"];
+window.HDEFLERIM_ALLOWED_EMAILS = ["umutcansaymaz@gmail.com", "umutcansaymaz1@gmail.com", "sulee.kocc8@gmail.com", "sulekcygtt@gmail.com", "akilyorungesi@gmail.com", "kingdomofanimalsss@gmail.com"];
 window.HDEFLERIM_WEB_PUSH_PUBLIC_KEY = "BForwWapJnkmG099mXKagzbg6KYghfBlf4MWslSrbGgXofrGkNnkW1YWnkKEArTAeqNj450QgHjv4i4-ZTrezsg";

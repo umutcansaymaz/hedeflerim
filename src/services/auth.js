@@ -7,7 +7,9 @@ const auth = window.auth;
 
 async function loginWithGoogle() {
     const loginBtn = document.getElementById('googleLoginBtn');
+    const authBtn = document.getElementById('authGoogleBtn');
     const originalText = loginBtn ? loginBtn.innerHTML : '';
+    const originalAuthText = authBtn ? authBtn.innerHTML : '';
 
     try {
         if (!auth) {
@@ -20,6 +22,12 @@ async function loginWithGoogle() {
             loginBtn.innerHTML = '<span class="loading-spinner"></span> Google ile bağlanılıyor...';
             loginBtn.style.opacity = '0.7';
             loginBtn.style.pointerEvents = 'none';
+        }
+        if (authBtn) {
+            authBtn.disabled = true;
+            authBtn.innerHTML = '<span class="loading-spinner"></span> Bağlanılıyor...';
+            authBtn.style.opacity = '0.7';
+            authBtn.style.pointerEvents = 'none';
         }
 
         const provider = new GoogleAuthProvider();
@@ -55,6 +63,12 @@ async function loginWithGoogle() {
             loginBtn.innerHTML = originalText;
             loginBtn.style.opacity = '1';
             loginBtn.style.pointerEvents = 'auto';
+        }
+        if (authBtn) {
+            authBtn.disabled = false;
+            authBtn.innerHTML = originalAuthText;
+            authBtn.style.opacity = '1';
+            authBtn.style.pointerEvents = 'auto';
         }
     }
 }
@@ -92,6 +106,9 @@ function updateAuthUI(user) {
     const userName = document.getElementById('userName');
     const userAvatar = document.getElementById('userAvatar');
     const syncStatus = document.getElementById('syncStatus');
+    const authScreen = document.getElementById('authScreen');
+    const headerUser = document.getElementById('headerUser');
+    const headerAvatar = document.getElementById('headerAvatar');
 
     if (!loginBtn || !userProfile) return;
 
@@ -118,6 +135,20 @@ function updateAuthUI(user) {
             syncStatus.textContent = 'Bulut bağlantısı aktif';
             syncStatus.style.color = 'var(--success)';
         }
+
+        // Tam ekran giriş ekranını kapat, header'da oturum durumunu göster
+        if (authScreen) authScreen.classList.add('hidden');
+        if (headerUser) {
+            headerUser.classList.remove('hidden');
+            if (headerAvatar) {
+                headerAvatar.alt = displayName;
+                headerAvatar.onerror = () => {
+                    headerAvatar.onerror = null;
+                    headerAvatar.src = fallbackAvatar;
+                };
+                headerAvatar.src = photoUrl || fallbackAvatar;
+            }
+        }
     } else {
         loginBtn.classList.remove('hidden');
         userProfile.classList.add('hidden');
@@ -125,6 +156,15 @@ function updateAuthUI(user) {
             syncStatus.textContent = 'Senkronize değil';
             syncStatus.style.color = 'var(--text-secondary)';
         }
+
+        // Oturum yok: tam ekran giriş ekranını göster (hesap seçme akışı buradan başlar)
+        if (authScreen) authScreen.classList.remove('hidden');
+        var hintEl = document.getElementById('authHint');
+        if (hintEl) {
+            var allowed = (window.ALLOWED_EMAILS && window.ALLOWED_EMAILS.length) ? window.ALLOWED_EMAILS.join(', ') : '';
+            hintEl.textContent = allowed ? ('İzinli hesaplar: ' + allowed) : '';
+        }
+        if (headerUser) headerUser.classList.add('hidden');
     }
 }
 

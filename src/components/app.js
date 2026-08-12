@@ -763,6 +763,8 @@ function _initExportImport() {
 function _initAuthButtons() {
     var loginBtn = document.getElementById('googleLoginBtn');
     if (loginBtn) loginBtn.addEventListener('click', window.loginWithGoogle);
+    var authBtn = document.getElementById('authGoogleBtn');
+    if (authBtn) authBtn.addEventListener('click', window.loginWithGoogle);
     var logoutBtn = document.getElementById('googleLogoutBtn');
     if (logoutBtn) logoutBtn.addEventListener('click', window.logout);
 }

@@ -90,10 +90,10 @@ try {
 
                 // PWA'dan gelen giris istegi (?pwa_login=1): web sekmesi acildi, oturum yok.
                 // Otomatik giris BASLATILMAZ - popup user gesture gerektirir (Chrome popup engelleyici).
-                // Kullanici bu sayfada 'Giris Yap' butonuna basar; akis popup ile tamamlanir.
+                // Kullanici bu sayfada 'Google ile devam et' butonuna basar; akis popup ile tamamlanir.
                 if (pwaLoginRequested) {
-                    window.debugLog('PWA login: web sekmesi acildi, oturum yok - kullanici Giris Yap butonuna basmali');
-                    window.showToast('Açılan sayfada "Giriş Yap" butonuna basın');
+                    window.debugLog('PWA login: web sekmesi acildi, oturum yok - kullanici giris butonuna basmali');
+                    window.showToast('Açılan sayfada "Google ile devam et" butonuna basın');
                 }
             }
         });

@@ -7,7 +7,7 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId && (
-        request.auth.token.email in ['umutcansaymaz@gmail.com', 'sulee.kocc8@gmail.com', 'akilyorungesi@gmail.com', 'kingdomofanimalsss@gmail.com']
+        request.auth.token.email in ['umutcansaymaz@gmail.com', 'umutcansaymaz1@gmail.com', 'sulee.kocc8@gmail.com', 'sulekcygtt@gmail.com', 'akilyorungesi@gmail.com', 'kingdomofanimalsss@gmail.com']
       );
     }
 

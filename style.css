@@ -2608,6 +2608,88 @@ body {
     animation: pulse 1.5s ease-in-out infinite;
 }
 
+/* ===== Auth Screen (oturum yokken tam ekran giriş ekranı) ===== */
+.auth-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, var(--bg-gradient-3) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 32px 24px;
+    gap: 12px;
+}
+
+.auth-logo {
+    font-size: 4rem;
+    margin-bottom: 8px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.auth-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+}
+
+.auth-subtitle {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 20px;
+}
+
+.auth-hint {
+    margin: 4px 24px 18px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.75);
+    text-align: center;
+    word-break: break-word;
+}
+
+.auth-google-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.auth-note {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 12px;
+}
+
+/* Header oturum durumu: avatar + çıkış */
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 4px;
+}
+
+.header-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
 .splash-title {
     font-size: 2rem;
     font-weight: 700;
