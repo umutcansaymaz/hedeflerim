@@ -166,17 +166,30 @@ describe("getHabitProgressForDate", () => {
 
 describe("calculateStreak", () => {
   it("boş tamamlamada seri 0", () => {
-    expect(calculateStreak({})).toBe(0);
+    expect(calculateStreak({}, dateKeyForOffset(0))).toBe(0);
   });
 
   it("bugün + önceki 6 gün → 7 günlük seri", () => {
-    expect(calculateStreak(completionsForStreak(7))).toBe(7);
+    expect(calculateStreak(completionsForStreak(7), dateKeyForOffset(0))).toBe(7);
   });
 
   it("dün boşsa seri kırılır", () => {
     const completions = completionsForStreak(1);
     completions[dateKeyForOffset(2)] = true;
-    expect(calculateStreak(completions)).toBe(1);
+    expect(calculateStreak(completions, dateKeyForOffset(0))).toBe(1);
+  });
+
+  it("dateKey sunucu saatinden değil, verilen günden geriye sayar (timezone kayması)", () => {
+    // bugünkü tamamlamalar var ama dateKey dünü işaret ediyor → seri 0
+    expect(calculateStreak(completionsForStreak(1), dateKeyForOffset(1))).toBe(0);
+    // bugün + dün tamamlandı, dateKey dün → seri yalnızca 1 (bugün sayılmaz)
+    expect(calculateStreak(completionsForStreak(2), dateKeyForOffset(1))).toBe(1);
+  });
+
+  it("geçersiz dateKey güvenli şekilde 0 döner", () => {
+    expect(calculateStreak(completionsForStreak(1), undefined)).toBe(0);
+    expect(calculateStreak(completionsForStreak(1), "")).toBe(0);
+    expect(calculateStreak(completionsForStreak(1), "13-08-2026")).toBe(0);
   });
 });
 

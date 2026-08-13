@@ -244,12 +244,16 @@ exports.sendScheduledReminders = functions
     const totals = emptyCounts();
 
     for (const userDoc of usersSnap.docs) {
-      const counts = await processUser(userDoc, now);
-      totals.scannedUsers += 1;
-      totals.sentMorning += counts.sentMorning;
-      totals.sentUrgency += counts.sentUrgency;
-      totals.sentNight += counts.sentNight;
-      totals.removedSubscriptions += counts.removedSubscriptions;
+      try {
+        const counts = await processUser(userDoc, now);
+        totals.scannedUsers += 1;
+        totals.sentMorning += counts.sentMorning;
+        totals.sentUrgency += counts.sentUrgency;
+        totals.sentNight += counts.sentNight;
+        totals.removedSubscriptions += counts.removedSubscriptions;
+      } catch (err) {
+        logger.error("process-user-failed", { userId: userDoc.id, error: err?.message || String(err) });
+      }
     }
 
     logger.info("scheduled-reminder-summary", totals);

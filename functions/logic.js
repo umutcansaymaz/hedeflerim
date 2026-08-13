@@ -145,13 +145,15 @@ function getHabitProgressForDate(habits, dateKey) {
   };
 }
 
-function calculateStreak(completions) {
-  const today = new Date();
+function calculateStreak(completions, dateKey) {
+  if (!dateKey || typeof dateKey !== "string") return 0;
+  const [year, month, day] = dateKey.split("-").map(Number);
+  if (!year || !month || !day) return 0;
+  const baseMs = Date.UTC(year, month - 1, day);
   let streak = 0;
   for (let i = 0; i < 1000; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const d = new Date(baseMs - i * 86400000);
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
     if (isCompletionDone(completions[key])) {
       streak++;
     } else {
@@ -165,7 +167,7 @@ function getHabitMilestones(habit, todayKey) {
   const results = [];
   const completions = asMap(habit?.completions);
   if (!isCompletionDone(completions[todayKey])) return results;
-  const streak = calculateStreak(completions);
+  const streak = calculateStreak(completions, todayKey);
   for (const milestone of STREAK_MILESTONES) {
     if (streak === milestone) {
       results.push({ name: (habit.name || "Aliskanlik").trim(), id: habit.id || habit.name, streak });
