@@ -345,68 +345,85 @@ function _updateTimerGoal(now) {
     }
 }
 
-function _updateTimerDisplay(mode, prefs, rt, status, now) {
+function computeStopwatchView(rt, status, now) {
+    const baseMs = Math.max(0, Math.floor(Number(rt.workAccMs) || 0));
+    const liveMs = status === 'running' && Number.isFinite(Number(rt.lastTickAtMs))
+        ? baseMs + Math.max(0, now - Number(rt.lastTickAtMs))
+        : baseMs;
+    const sec = Math.floor(liveMs / 1000);
+    return {
+        phaseLabel: 'Çalışma',
+        timeText: window.formatFocusClock(sec, { showHours: sec >= 3600 }),
+        progressRatio: 0,
+        progressText: '',
+        showProgress: false
+    };
+}
+
+function computeCountdownView(prefs, rt, status, now) {
+    const totalSec = Math.max(0, Math.floor(Number(prefs.countdownSec) || 0));
+    let remainingMs = totalSec * 1000;
+    if (status === 'running' && Number.isFinite(Number(rt.phaseEndsAtMs))) {
+        remainingMs = Math.max(0, Number(rt.phaseEndsAtMs) - now);
+    } else if (status === 'paused' && Number.isFinite(Number(rt.phaseRemainingMs))) {
+        remainingMs = Math.max(0, Number(rt.phaseRemainingMs));
+    }
+    const remainingSec = Math.floor(remainingMs / 1000);
+    return {
+        phaseLabel: 'Geri sayım',
+        timeText: window.formatFocusClock(remainingSec, { showHours: remainingSec >= 3600 || totalSec >= 3600 }),
+        progressRatio: totalSec > 0 ? (1 - (remainingSec / totalSec)) : 0,
+        progressText: totalSec > 0 ? `Süre: ${window.formatFocusClock(totalSec, { showHours: totalSec >= 3600 })}` : '',
+        showProgress: true
+    };
+}
+
+function computePomodoroView(prefs, rt, status, now) {
+    const preset = window.getPresetForFocus(prefs.pomodoroPresetId);
+    const phaseType = rt.phaseType === 'shortBreak' || rt.phaseType === 'longBreak' ? rt.phaseType : 'work';
+    const totalMs = phaseType === 'shortBreak' ? preset.shortBreakMs : phaseType === 'longBreak' ? preset.longBreakMs : preset.workMs;
+    let remainingMs = totalMs;
+    if (status === 'running' && Number.isFinite(Number(rt.phaseEndsAtMs))) {
+        remainingMs = Math.max(0, Number(rt.phaseEndsAtMs) - now);
+    } else if (status === 'paused' && Number.isFinite(Number(rt.phaseRemainingMs))) {
+        remainingMs = Math.max(0, Number(rt.phaseRemainingMs));
+    } else if (status === 'phaseEnded') {
+        remainingMs = 0;
+    }
+    const remainingSec = Math.floor(remainingMs / 1000);
+    const done = Math.max(0, Math.floor(Number(rt.cyclesCompleted) || 0));
+    const remainder = done % window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK;
+    const nextLongIn = remainder === 0 ? window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK : (window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK - remainder);
+    return {
+        phaseLabel: window.getPomodoroPhaseLabel(phaseType),
+        timeText: window.formatFocusClock(remainingSec),
+        progressRatio: totalMs > 0 ? (1 - (remainingMs / totalMs)) : 0,
+        progressText: done > 0 ? `Tamamlanan: ${done} • Uzun mola: ${nextLongIn} sonra` : `Uzun mola: ${window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK} pomodoro sonra`,
+        showProgress: true
+    };
+}
+
+// Hesaplanan görünümü DOM'a yazar (tek yazıcı; view hesapları saf fonksiyonlarda).
+function applyTimerView(view) {
     const phaseEl = document.getElementById('focusPhaseLabel');
     const timeEl = document.getElementById('focusTimeText');
     const progressWrap = document.getElementById('focusProgressWrap');
     const progressBar = document.getElementById('focusProgressBar');
     const progressMeta = document.getElementById('focusProgressMeta');
 
-    let phaseLabel = '';
-    let timeText = '';
-    let progressRatio = 0;
-    let progressText = '';
-    let showProgress = true;
+    if (phaseEl) phaseEl.textContent = view.phaseLabel;
+    if (timeEl) timeEl.textContent = view.timeText;
+    if (progressWrap) progressWrap.classList.toggle('hidden', !view.showProgress);
+    if (progressBar) progressBar.style.width = `${Math.max(0, Math.min(100, Math.round(view.progressRatio * 100)))}%`;
+    if (progressMeta) progressMeta.textContent = view.progressText;
+}
 
-    if (mode === 'stopwatch') {
-        const baseMs = Math.max(0, Math.floor(Number(rt.workAccMs) || 0));
-        const liveMs = status === 'running' && Number.isFinite(Number(rt.lastTickAtMs))
-            ? baseMs + Math.max(0, now - Number(rt.lastTickAtMs))
-            : baseMs;
-        const sec = Math.floor(liveMs / 1000);
-        phaseLabel = 'Çalışma';
-        timeText = window.formatFocusClock(sec, { showHours: sec >= 3600 });
-        showProgress = false;
-    } else if (mode === 'countdown') {
-        const totalSec = Math.max(0, Math.floor(Number(prefs.countdownSec) || 0));
-        let remainingMs = totalSec * 1000;
-        if (status === 'running' && Number.isFinite(Number(rt.phaseEndsAtMs))) {
-            remainingMs = Math.max(0, Number(rt.phaseEndsAtMs) - now);
-        } else if (status === 'paused' && Number.isFinite(Number(rt.phaseRemainingMs))) {
-            remainingMs = Math.max(0, Number(rt.phaseRemainingMs));
-        }
-        const remainingSec = Math.floor(remainingMs / 1000);
-        phaseLabel = 'Geri sayım';
-        timeText = window.formatFocusClock(remainingSec, { showHours: remainingSec >= 3600 || totalSec >= 3600 });
-        progressRatio = totalSec > 0 ? (1 - (remainingSec / totalSec)) : 0;
-        progressText = totalSec > 0 ? `Süre: ${window.formatFocusClock(totalSec, { showHours: totalSec >= 3600 })}` : '';
-    } else {
-        const preset = window.getPresetForFocus(prefs.pomodoroPresetId);
-        const phaseType = rt.phaseType === 'shortBreak' || rt.phaseType === 'longBreak' ? rt.phaseType : 'work';
-        const totalMs = phaseType === 'shortBreak' ? preset.shortBreakMs : phaseType === 'longBreak' ? preset.longBreakMs : preset.workMs;
-        let remainingMs = totalMs;
-        if (status === 'running' && Number.isFinite(Number(rt.phaseEndsAtMs))) {
-            remainingMs = Math.max(0, Number(rt.phaseEndsAtMs) - now);
-        } else if (status === 'paused' && Number.isFinite(Number(rt.phaseRemainingMs))) {
-            remainingMs = Math.max(0, Number(rt.phaseRemainingMs));
-        } else if (status === 'phaseEnded') {
-            remainingMs = 0;
-        }
-        const remainingSec = Math.floor(remainingMs / 1000);
-        phaseLabel = window.getPomodoroPhaseLabel(phaseType);
-        timeText = window.formatFocusClock(remainingSec);
-        progressRatio = totalMs > 0 ? (1 - (remainingMs / totalMs)) : 0;
-        const done = Math.max(0, Math.floor(Number(rt.cyclesCompleted) || 0));
-        const remainder = done % window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK;
-        const nextLongIn = remainder === 0 ? window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK : (window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK - remainder);
-        progressText = done > 0 ? `Tamamlanan: ${done} • Uzun mola: ${nextLongIn} sonra` : `Uzun mola: ${window.FOCUS_POMODORO_CYCLES_BEFORE_LONG_BREAK} pomodoro sonra`;
-    }
-
-    if (phaseEl) phaseEl.textContent = phaseLabel;
-    if (timeEl) timeEl.textContent = timeText;
-    if (progressWrap) progressWrap.classList.toggle('hidden', !showProgress);
-    if (progressBar) progressBar.style.width = `${Math.max(0, Math.min(100, Math.round(progressRatio * 100)))}%`;
-    if (progressMeta) progressMeta.textContent = progressText;
+function _updateTimerDisplay(mode, prefs, rt, status, now) {
+    let view;
+    if (mode === 'stopwatch') view = computeStopwatchView(rt, status, now);
+    else if (mode === 'countdown') view = computeCountdownView(prefs, rt, status, now);
+    else view = computePomodoroView(prefs, rt, status, now);
+    applyTimerView(view);
 }
 
 function _updateTimerControls(status, mode) {
@@ -516,6 +533,9 @@ window.closeFocusOverlay = closeFocusOverlay;
 window.updateFocusTimerHeaderIndicator = updateFocusTimerHeaderIndicator;
 window.getFocusTimerRemainingSeconds = getFocusTimerRemainingSeconds;
 window.renderFocusTimerCard = renderFocusTimerCard;
+window.computeStopwatchView = computeStopwatchView;
+window.computeCountdownView = computeCountdownView;
+window.computePomodoroView = computePomodoroView;
 window.updateFocusTimerUi = updateFocusTimerUi;
 window.clampFocusWeeklyGoalMinutes = clampFocusWeeklyGoalMinutes;
 window.setFocusWeeklyGoalMinutes = setFocusWeeklyGoalMinutes;

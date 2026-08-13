@@ -168,6 +168,20 @@ function deleteBook(id) {
     window.softDeleteItem('book', id, { itemLabel: 'Kitap' });
 }
 
+// Günlük hedef durumunu tek yerde üretir: { stateClass, text } (rendere gömülü 4'lü ternary'lerin yerine).
+function getBookDailyGoalState(dailyGoal, dailyDeviation) {
+    if (dailyGoal <= 0) {
+        return { stateClass: 'neutral', text: 'Günlük hedef yok. İstersen sayfa hedefi belirle.' };
+    }
+    if (dailyDeviation.isBehind) {
+        return { stateClass: 'warn', text: 'Bugün hedefin ' + dailyDeviation.absDiff + ' sayfa gerisindesin.' };
+    }
+    if (dailyDeviation.isAhead) {
+        return { stateClass: 'good', text: 'Bugün hedefin ' + dailyDeviation.absDiff + ' sayfa üstündesin.' };
+    }
+    return { stateClass: 'ok', text: 'Bugün hedefi tutturdun.' };
+}
+
 function renderBooks() {
     const container = document.getElementById('booksContainer');
     const stats = document.getElementById('bookStats');
@@ -209,20 +223,7 @@ function renderBooks() {
         const remaining = hasPages ? book.totalPages - currentPage : 0;
         const dailyGoal = Math.max(0, Math.floor(Number(book.dailyGoalPages) || 0));
         const dailyDeviation = getBookDailyDeviation(book);
-        const dailyGoalStateClass = dailyGoal <= 0
-            ? 'neutral'
-            : dailyDeviation.isBehind
-                ? 'warn'
-                : dailyDeviation.isAhead
-                    ? 'good'
-                    : 'ok';
-        const dailyGoalText = dailyGoal <= 0
-            ? 'Günlük hedef yok. İstersen sayfa hedefi belirle.'
-            : dailyDeviation.isBehind
-                ? 'Bugün hedefin ' + dailyDeviation.absDiff + ' sayfa gerisindesin.'
-                : dailyDeviation.isAhead
-                    ? 'Bugün hedefin ' + dailyDeviation.absDiff + ' sayfa üstündesin.'
-                    : 'Bugün hedefi tutturdun.';
+        const dailyGoalState = getBookDailyGoalState(dailyGoal, dailyDeviation);
         const safeBookId = window.escapeJsSingleQuote(book.id || '');
         const safeBookDataId = safeText(book.id);
         const safeBookTitle = safeText(book.title);
@@ -262,9 +263,9 @@ function renderBooks() {
                         <span>sayfa</span>
                     </div>
                 </div>
-                <div class="book-daily-goal-meta ${dailyGoalStateClass}">
+                <div class="book-daily-goal-meta ${dailyGoalState.stateClass}">
                     <strong>Bugün: ${dailyDeviation.todayRead}</strong>
-                    <span>${safeText(dailyGoalText)}</span>
+                    <span>${safeText(dailyGoalState.text)}</span>
                 </div>
             </div>
         `;
@@ -306,6 +307,7 @@ function renderBooks() {
 
 window.getBookTodayReadPages = getBookTodayReadPages;
 window.getBookDailyDeviation = getBookDailyDeviation;
+window.getBookDailyGoalState = getBookDailyGoalState;
 window.isBookCompleted = isBookCompleted;
 window.createBook = createBook;
 window.openManualBookModal = openManualBookModal;

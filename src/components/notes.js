@@ -105,49 +105,61 @@ function getNoteTimestamp(note) {
     return getNoteDateObject(note)?.getTime() || 0;
 }
 
-function noteMatchesDateFilter(noteDate) {
-    if (currentNoteDateFilter === 'all') return true;
-    if (!(noteDate instanceof Date) || !Number.isFinite(noteDate.getTime())) return false;
-
+// Filtre adına göre [başlangıç, bitiş) aralığı döner; all/custom için null.
+function getNoteFilterRange(filter) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
-    if (currentNoteDateFilter === 'today') {
-        return noteDate >= todayStart && noteDate < tomorrowStart;
-    }
-
-    if (currentNoteDateFilter === '7d') {
+    if (filter === 'today') return { start: todayStart, end: tomorrowStart };
+    if (filter === '7d') {
         const start = new Date(todayStart);
         start.setDate(start.getDate() - 6);
-        return noteDate >= start && noteDate < tomorrowStart;
+        return { start, end: tomorrowStart };
     }
-
-    if (currentNoteDateFilter === '30d') {
+    if (filter === '30d') {
         const start = new Date(todayStart);
         start.setDate(start.getDate() - 29);
-        return noteDate >= start && noteDate < tomorrowStart;
+        return { start, end: tomorrowStart };
     }
+    return null;
+}
 
-    if (currentNoteDateFilter === 'custom') {
-        let start = noteCustomStartDate ? new Date(noteCustomStartDate + 'T00:00:00') : null;
-        let end = noteCustomEndDate ? new Date(noteCustomEndDate + 'T23:59:59.999') : null;
-        const hasValidStart = !!(start && Number.isFinite(start.getTime()));
-        const hasValidEnd = !!(end && Number.isFinite(end.getTime()));
+// Özel aralık girdisini normalleştirir; başlangıç > bitiş ise takas eder (gizli davranış, testlerle sabitlendi).
+function normalizeCustomRange(customStart, customEnd) {
+    let start = customStart ? new Date(customStart + 'T00:00:00') : null;
+    let end = customEnd ? new Date(customEnd + 'T23:59:59.999') : null;
+    const hasValidStart = !!(start && Number.isFinite(start.getTime()));
+    const hasValidEnd = !!(end && Number.isFinite(end.getTime()));
 
-        if (hasValidStart && hasValidEnd && start > end) {
-            const tmp = start;
-            start = end;
-            end = tmp;
-        }
+    if (hasValidStart && hasValidEnd && start > end) {
+        const tmp = start;
+        start = end;
+        end = tmp;
+    }
+    return { start, end, hasValidStart, hasValidEnd };
+}
 
-        if (hasValidStart && noteDate < start) return false;
-        if (hasValidEnd && noteDate > end) return false;
+// Saf filtre mantığı (test edilebilir); noteMatchesDateFilter closure değerlerini buraya iletir.
+function matchesDateFilter(noteDate, filter, customStart, customEnd) {
+    if (filter === 'all') return true;
+    if (!(noteDate instanceof Date) || !Number.isFinite(noteDate.getTime())) return false;
+
+    const range = getNoteFilterRange(filter);
+    if (range) return noteDate >= range.start && noteDate < range.end;
+
+    if (filter === 'custom') {
+        const r = normalizeCustomRange(customStart, customEnd);
+        if (r.hasValidStart && noteDate < r.start) return false;
+        if (r.hasValidEnd && noteDate > r.end) return false;
         return true;
     }
-
     return true;
+}
+
+function noteMatchesDateFilter(noteDate) {
+    return matchesDateFilter(noteDate, currentNoteDateFilter, noteCustomStartDate, noteCustomEndDate);
 }
 
 function noteMatchesSearch(note) {
@@ -687,3 +699,6 @@ window.initNotesJumpFab = initNotesJumpFab;
 window.stopVoiceRecognition = stopVoiceRecognition;
 window.startVoiceRecognition = startVoiceRecognition;
 window.updateTodayJournalPreview = updateTodayJournalPreview;
+window.matchesDateFilter = matchesDateFilter;
+window.getNoteFilterRange = getNoteFilterRange;
+window.normalizeCustomRange = normalizeCustomRange;

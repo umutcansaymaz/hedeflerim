@@ -622,37 +622,58 @@ function _initSwipeToClose() {
     });
 }
 
+// Odak butonları için dispatch tablosu: data-focus-action değeri → eylem.
+var FOCUS_ACTION_HANDLERS = {
+    start: function () { window.FocusTimer.start(); },
+    pause: function () { window.FocusTimer.pause(); },
+    resume: function () { window.FocusTimer.resume(); },
+    next: function () { window.FocusTimer.nextPhase(); },
+    continueEnd: function () { window.FocusTimer.nextPhase(); },
+    breakEnd: function () { window.FocusTimer.takeBreak(); },
+    stopNote: function () { window.stopFocusWithNote(); },
+    stop: function () { window.FocusTimer.stop(); },
+    history: function () {
+        if (window.switchTab) window.switchTab('progress');
+        setTimeout(function () {
+            var card = document.getElementById('focusWeeklySummaryCard');
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+    }
+};
+
+function handleFocusActionClick(action) {
+    var handler = FOCUS_ACTION_HANDLERS[action];
+    if (handler) handler();
+}
+
+function handleProgressCardToggle(toggleEl) {
+    var card = toggleEl.closest('[data-progress-card]');
+    var cardKey = toggleEl.dataset.progressCardToggle || card?.dataset.progressCard;
+    if (!cardKey) return;
+    var isExpanded = card?.classList.contains('is-expanded') === true;
+    window.setProgressCardExpanded(cardKey, !isExpanded);
+}
+
+function handleAnnualGoalClick() {
+    var value = document.getElementById('annualGoalValueInput')?.value;
+    var unit = document.getElementById('annualGoalUnitInput')?.value;
+    window.updateAnnualGoalSettings(value, unit);
+    window.showToast('Yıllık hedef kaydedildi');
+    window.renderTabContent('progress');
+}
+
 function _initEventDelegation() {
     document.addEventListener('click', function(e) {
         var cardToggle = e.target.closest('[data-progress-card-toggle]');
         if (cardToggle) {
             e.preventDefault();
-            var card = cardToggle.closest('[data-progress-card]');
-            var cardKey = cardToggle.dataset.progressCardToggle || card?.dataset.progressCard;
-            if (!cardKey) return;
-            var isExpanded = card?.classList.contains('is-expanded') === true;
-            window.setProgressCardExpanded(cardKey, !isExpanded);
+            handleProgressCardToggle(cardToggle);
             return;
         }
         var focusAction = e.target.closest('[data-focus-action]');
         if (focusAction) {
             e.preventDefault();
-            var action = focusAction.dataset.focusAction;
-            if (action === 'start') window.FocusTimer.start();
-            else if (action === 'pause') window.FocusTimer.pause();
-            else if (action === 'resume') window.FocusTimer.resume();
-            else if (action === 'next') window.FocusTimer.nextPhase();
-            else if (action === 'continueEnd') window.FocusTimer.nextPhase();
-            else if (action === 'breakEnd') window.FocusTimer.takeBreak();
-            else if (action === 'stopNote') window.stopFocusWithNote();
-            else if (action === 'stop') window.FocusTimer.stop();
-            else if (action === 'history') {
-                if (window.switchTab) window.switchTab('progress');
-                setTimeout(function() {
-                    var card = document.getElementById('focusWeeklySummaryCard');
-                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 120);
-            }
+            handleFocusActionClick(focusAction.dataset.focusAction);
             return;
         }
         var focusMode = e.target.closest('[data-focus-mode]');
@@ -674,14 +695,7 @@ function _initEventDelegation() {
         var fillBtn = e.target.closest('#fillWeeklyWinsBtn');
         if (fillBtn) { window.fillWeeklyWinsSuggestionFromUi(); return; }
         var annualGoalBtn = e.target.closest('#saveAnnualGoalBtn');
-        if (annualGoalBtn) {
-            var value = document.getElementById('annualGoalValueInput')?.value;
-            var unit = document.getElementById('annualGoalUnitInput')?.value;
-            window.updateAnnualGoalSettings(value, unit);
-            window.showToast('Yıllık hedef kaydedildi');
-            window.renderTabContent('progress');
-            return;
-        }
+        if (annualGoalBtn) { handleAnnualGoalClick(); return; }
         if (e.target && e.target.id === 'saveWeeklyPlannerBtn') window.saveWeeklyPlannerFromUi();
     });
 }

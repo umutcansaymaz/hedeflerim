@@ -173,26 +173,26 @@ function _handleCloudSaveError(error) {
     }
 }
 
+// Çevrimdışıysa veya eşzamanlı yükleme/indirme sürüyorsa (force yoksa) kaydı kuyruğa al.
+// Saf fonksiyon: race guard mantığı test edilebilir (state parametre olarak gelir).
+function shouldQueueCloudSave(state, force) {
+    if (!window.isNetworkOnline()) return true;
+    if (force) return false;
+    return state.cloudLoadInFlight || state.cloudSaveInFlight;
+}
+
 async function saveToCloud(force = false) {
     if (!currentUser || !db) return false;
 
-    if (!window.isNetworkOnline()) {
+    if (shouldQueueCloudSave({ cloudLoadInFlight, cloudSaveInFlight }, force)) {
         pendingCloudSave = true;
-        const now = Date.now();
-        if (now - lastOfflineSaveNoticeAt > 15000) {
-            lastOfflineSaveNoticeAt = now;
-            pushSyncEvent('net', 'Çevrimdışı: bulut kaydı beklemeye alındı.');
+        if (!window.isNetworkOnline()) {
+            const now = Date.now();
+            if (now - lastOfflineSaveNoticeAt > 15000) {
+                lastOfflineSaveNoticeAt = now;
+                pushSyncEvent('net', 'Çevrimdışı: bulut kaydı beklemeye alındı.');
+            }
         }
-        return false;
-    }
-
-    if (cloudLoadInFlight && !force) {
-        pendingCloudSave = true;
-        return false;
-    }
-
-    if (cloudSaveInFlight && !force) {
-        pendingCloudSave = true;
         return false;
     }
 
@@ -736,5 +736,6 @@ window.openSyncStatusModal = openSyncStatusModal;
 window.closeSyncStatusModal = closeSyncStatusModal;
 window.loadErrorLog = loadErrorLog;
 window.pushSyncEvent = pushSyncEvent;
+window.shouldQueueCloudSave = shouldQueueCloudSave;
 window.copyTextToClipboard = copyTextToClipboard;
 window.initGlobalErrorCapture = initGlobalErrorCapture;

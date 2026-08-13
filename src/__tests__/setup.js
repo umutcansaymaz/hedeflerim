@@ -204,6 +204,7 @@ beforeAll(() => {
   const statsPath = path.resolve(__dirname, '../../src/components/stats.js');
   const progressPath = path.resolve(__dirname, '../../src/components/progress.js');
   const appPath = path.resolve(__dirname, '../../src/components/app.js');
+  const focusUiPath = path.resolve(__dirname, '../../src/components/focus-ui.js');
 
   // Test whitelist: ALLOWED_EMAILS array'ini test email'lerini içerecek şekilde genişlet
   // (Gerçek dosyayı DEĞİŞTİRMEDEN, sadece eval öncesi kaynakta düzeltme yapıyoruz)
@@ -228,7 +229,8 @@ beforeAll(() => {
     fs.readFileSync(notesPath, 'utf-8'),
     fs.readFileSync(statsPath, 'utf-8'),
     fs.readFileSync(progressPath, 'utf-8'),
-    fs.readFileSync(appPath, 'utf-8')
+    fs.readFileSync(appPath, 'utf-8'),
+    fs.readFileSync(focusUiPath, 'utf-8')
   ].map(cleanSource).join('\n');
 
   // Indirect eval executes in global scope so function and const/let declarations
