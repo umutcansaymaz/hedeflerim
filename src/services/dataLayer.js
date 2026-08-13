@@ -34,11 +34,33 @@ const defaultData = {
 
 // ===== Normalization Helpers =====
 
+// Whitelist'ler firestore.rules'daki hasOnly listeleriyle BİREBİR senkron tutulur.
+// Amaç: kural dışı (eski sürümlerden kalan) alanlar hiçbir payload'a girmesin.
+const SETTINGS_KEYS = ['theme', 'notificationsEnabled', 'reminderTime', 'smartReminderEnabled', 'lastFixedReminderKey', 'lastSmartReminderDate', 'lastWeeklySummaryDismissed', 'focusWeeklyGoalMinutes', 'focusSoundEnabled', 'annualGoalValue', 'annualGoalUnit', 'dashboardOrder'];
+const HABIT_KEYS = ['id', 'name', 'color', 'completions', 'category', 'goal', 'createdAt', 'updatedAt'];
+const TODO_KEYS = ['id', 'text', 'completed', 'bucket', 'dueDate', 'createdAt', 'updatedAt'];
+const BOOK_KEYS = ['id', 'title', 'author', 'coverUrl', 'totalPages', 'currentPage', 'dailyGoalPages', 'dailyReadLog', 'status', 'completed', 'createdAt', 'updatedAt'];
+const NOTE_KEYS = ['id', 'title', 'content', 'category', 'color', 'pinned', 'archived', 'createdAt', 'updatedAt'];
+const FOCUS_KEYS = ['id', 'label', 'mode', 'preset', 'startedAt', 'endedAt', 'workSec', 'breakSec', 'interruptions', 'plannedWorkSec', 'completionPct', 'deepWorkScore', 'linkedType', 'linkedId', 'linkedLabel', 'cycles', 'createdAt', 'updatedAt'];
+const APP_DATA_KEYS = ['settings', 'habits', 'todos', 'books', 'notes', 'focusSessions', 'weeklyReview', 'moods', 'xp', 'level', 'achievements'];
+
+function pickAllowedKeys(source, allowedKeys) {
+    const result = {};
+    if (source && typeof source === 'object' && !Array.isArray(source)) {
+        for (const key of allowedKeys) {
+            if (key in source) {
+                result[key] = source[key];
+            }
+        }
+    }
+    return result;
+}
+
 function normalizeSettings(source) {
     const rawSettings = source && typeof source === 'object' ? source : {};
     const settings = {
         ...defaultData.settings,
-        ...rawSettings
+        ...pickAllowedKeys(rawSettings, SETTINGS_KEYS)
     };
     settings.theme = window.truncateText(typeof settings.theme === 'string' ? settings.theme : '', 32);
     settings.notificationsEnabled = Boolean(settings.notificationsEnabled);
@@ -78,7 +100,7 @@ function normalizeSettings(source) {
 
 function normalizeHabitsArray(habits) {
     return Array.isArray(habits) ? habits.map((habit, index) => {
-        const item = habit && typeof habit === 'object' ? { ...habit } : {};
+        const item = pickAllowedKeys(habit, HABIT_KEYS);
         item.id = typeof item.id === 'string' && item.id ? item.id : `habit_${Date.now()}_${index}`;
         item.name = window.truncateText(typeof item.name === 'string' ? item.name : '', 120);
         item.color = window.sanitizeColor(item.color);
@@ -106,7 +128,7 @@ function normalizeHabitsArray(habits) {
 
 function normalizeTodosArray(todos) {
     return Array.isArray(todos) ? todos.map((todo, index) => {
-        const item = todo && typeof todo === 'object' ? { ...todo } : {};
+        const item = pickAllowedKeys(todo, TODO_KEYS);
         item.id = typeof item.id === 'string' && item.id ? item.id : `todo_${Date.now()}_${index}`;
         item.text = window.truncateText(typeof item.text === 'string' ? item.text : '', 500);
         item.completed = Boolean(item.completed);
@@ -120,7 +142,7 @@ function normalizeTodosArray(todos) {
 
 function normalizeBooksArray(books) {
     return Array.isArray(books) ? books.map((book, index) => {
-        const item = book && typeof book === 'object' ? { ...book } : {};
+        const item = pickAllowedKeys(book, BOOK_KEYS);
         item.id = typeof item.id === 'string' && item.id ? item.id : `book_${Date.now()}_${index}`;
         item.title = window.truncateText(typeof item.title === 'string' ? item.title : '', 240);
         item.author = window.truncateText(typeof item.author === 'string' ? item.author : '', 160);
@@ -142,7 +164,7 @@ function normalizeBooksArray(books) {
 
 function normalizeNotesArray(notes) {
     return Array.isArray(notes) ? notes.map((note, index) => {
-        const item = note && typeof note === 'object' ? { ...note } : {};
+        const item = pickAllowedKeys(note, NOTE_KEYS);
         item.id = typeof item.id === 'string' && item.id ? item.id : `note_${Date.now()}_${index}`;
         item.title = window.truncateText(typeof item.title === 'string' ? item.title : '', 240);
         item.content = window.truncateText(typeof item.content === 'string' ? item.content : '', 50000);
@@ -158,7 +180,7 @@ function normalizeNotesArray(notes) {
 
 function normalizeFocusSessionsArray(sessions) {
     return Array.isArray(sessions) ? sessions.map((session, index) => {
-        const item = session && typeof session === 'object' ? { ...session } : {};
+        const item = pickAllowedKeys(session, FOCUS_KEYS);
         item.id = typeof item.id === 'string' && item.id ? item.id : `focus_${Date.now()}_${index}`;
         item.label = window.truncateText(typeof item.label === 'string' ? item.label : 'Ders', 80);
         item.mode = item.mode === 'stopwatch' || item.mode === 'countdown' ? item.mode : 'pomodoro';
@@ -204,7 +226,7 @@ function normalizeAppData(rawData) {
     const source = rawData && typeof rawData === 'object' ? rawData : {};
     const normalized = {
         ...window.defaultData,
-        ...source
+        ...pickAllowedKeys(source, APP_DATA_KEYS)
     };
     normalized.settings = normalizeSettings(source.settings);
     normalized.habits = normalizeHabitsArray(source.habits);
@@ -460,7 +482,10 @@ function buildCloudWriteOperations(userId, localData, baseData) {
         type: 'set',
         ref: userRef,
         data: buildCloudMetadataPayload(normalizedLocal),
-        options: { merge: true }
+        // merge:false — kök doküman yalnızca kuralın izin verdiği 5 alanı taşır.
+        // merge:true olsaydı eski sürümlerden kalan kural dışı alanlar korunur
+        // ve hasOnly kuralı her yazımı reddederdi (permission-denied).
+        options: { merge: false }
     });
 
     return operations;

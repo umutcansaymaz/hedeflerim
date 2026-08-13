@@ -92,7 +92,7 @@ async function migrateLegacyCloudDataIfNeeded(userId, legacyData) {
             migratedAt: serverTimestamp(),
             updatedAt: new Date().toISOString()
         },
-        options: { merge: true }
+        options: { merge: false }
     });
 
     await commitCloudOperations(operations);

@@ -723,7 +723,8 @@ describe('buildCloudWriteOperations()', () => {
     expect(lastOp.data).toBeDefined();
     expect(lastOp.data.schemaVersion).toBeDefined();
     expect(lastOp.options).toBeDefined();
-    expect(lastOp.options.merge).toBe(true);
+    // merge:false — kök doküman yalnızca kural izinli 5 alanı taşır (hasOnly uyumu)
+    expect(lastOp.options.merge).toBe(false);
   });
 });
 
