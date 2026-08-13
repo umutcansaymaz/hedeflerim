@@ -74,7 +74,10 @@ service cloud.firestore {
     }
 
     function validCloudRoot() {
-      return request.resource.data.keys().hasAll(['schemaVersion'])
+      return request.resource.data.keys().hasOnly([
+          'schemaVersion', 'lastClientSyncAt', 'counters', 'app', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['schemaVersion'])
         && request.resource.data.schemaVersion is int
         && request.resource.data.schemaVersion >= 1
         && request.resource.data.schemaVersion <= 2
@@ -109,7 +112,10 @@ service cloud.firestore {
           (!('source' in request.resource.data.app) || isShortString(request.resource.data.app.source, 24)) &&
           (!('version' in request.resource.data.app) || isShortString(request.resource.data.app.version, 24))
         ))
-        && (!('updatedAt' in request.resource.data) || isShortString(request.resource.data.updatedAt, 40));
+        && (!('updatedAt' in request.resource.data) || (
+          isShortString(request.resource.data.updatedAt, 40) ||
+          request.resource.data.updatedAt is timestamp
+        ));
     }
 
     function validStateDoc() {
