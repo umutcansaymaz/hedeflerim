@@ -255,6 +255,32 @@ function quickToggleHabit(habitId) {
     toggleHabitCompletion(habitId, today);
 }
 
+// Tıklama sonucu yazılacak tamamlanma değerini hesaplar (yan etkisiz, test edilebilir).
+// { value, celebrate, confetti, xp } — yan etkiler (toast/XP/confetti/celebration) çağıranda uygulanır.
+// Not: weekly hedefte weekDone, bugünün yeni durumu DAHİL sayılır (orijinalde yazım sonrası sayılıyordu).
+function computeCompletionDelta(habit, completionData, nowIso) {
+    const alreadyDone = window.isCompletionDone(completionData);
+    const isWeeklyGoal = habit.goal && habit.goal.frequency === 'weekly';
+    const isDailyGoal = habit.goal && habit.goal.frequency === 'daily';
+    const base = { celebrate: false, confetti: false, xp: 0 };
+
+    if (isWeeklyGoal) {
+        if (alreadyDone) return { ...base, value: 0 };
+        const weekDates = window.getWeekDates(window.currentWeekOffset);
+        const weekDone = weekDates.filter(d => window.isCompletionDone(habit.completions[window.formatDate(d)])).length + 1;
+        const target = Math.max(1, Math.floor(Number(habit.goal?.value) || 1));
+        return { ...base, value: 1, celebrate: weekDone >= target };
+    }
+
+    if (isDailyGoal) {
+        if (alreadyDone) return { ...base, value: 0 };
+        const goalValue = Math.max(0, Number(habit.goal?.value) || 0);
+        return { ...base, value: goalValue, confetti: true, xp: 20 };
+    }
+
+    return { ...base, value: alreadyDone ? 0 : 1 };
+}
+
 function toggleHabitCompletion(habitId, dateStr) {
     const habit = window.appData.habits.find(h => h.id === habitId);
     if (!habit) return;
@@ -262,46 +288,20 @@ function toggleHabitCompletion(habitId, dateStr) {
     const nowIso = new Date().toISOString();
     if (!habit.completions || typeof habit.completions !== 'object') habit.completions = {};
 
-    const completionData = habit.completions[dateStr];
-    const alreadyDone = window.isCompletionDone(completionData);
-    const isWeeklyGoal = habit.goal && habit.goal.frequency === 'weekly';
-    const isDailyGoal = habit.goal && habit.goal.frequency === 'daily';
-
-    const setCompletionValue = (value) => {
-        habit.completions[dateStr] = {
-            value: Math.max(0, Number(value) || 0),
-            time: nowIso
-        };
+    const delta = computeCompletionDelta(habit, habit.completions[dateStr], nowIso);
+    habit.completions[dateStr] = {
+        value: Math.max(0, Number(delta.value) || 0),
+        time: nowIso
     };
 
-    if (isWeeklyGoal) {
-        if (alreadyDone) {
-            setCompletionValue(0);
-        } else {
-            setCompletionValue(1);
-            const weekDates = window.getWeekDates(window.currentWeekOffset);
-            const weekDone = weekDates.filter(d => window.isCompletionDone(habit.completions[window.formatDate(d)])).length;
-            const target = Math.max(1, Math.floor(Number(habit.goal?.value) || 1));
-            if (weekDone >= target) {
-                window.showCelebrationModal(habit.name, target);
-            }
-        }
-    } else if (isDailyGoal) {
-        if (alreadyDone) {
-            setCompletionValue(0);
-        } else {
-            const goalValue = Math.max(0, Number(habit.goal?.value) || 0);
-            setCompletionValue(goalValue);
-            triggerConfetti();
-            window.showToast('Hedef tamamlandı! +20 XP');
-            window.addXP(20);
-        }
-    } else {
-        if (alreadyDone) {
-            setCompletionValue(0);
-        } else {
-            setCompletionValue(1);
-        }
+    if (delta.celebrate) {
+        const target = Math.max(1, Math.floor(Number(habit.goal?.value) || 1));
+        window.showCelebrationModal(habit.name, target);
+    }
+    if (delta.confetti) triggerConfetti();
+    if (delta.xp > 0) {
+        window.showToast('Hedef tamamlandı! +20 XP');
+        window.addXP(delta.xp);
     }
 
     habit.updatedAt = nowIso;
@@ -479,6 +479,45 @@ function clearHabitValue() {
 
 // ----- Summary Stats (Habits Tab) -----
 
+// Alışkanlık için bu hafta/geçen hafta/bu ay toplamlarını hesaplar (yan etkisiz, test edilebilir).
+function computeHabitStatTotals(habit, weekDates, lastWeekDates, currentMonth, currentYear) {
+    const fallbackGoalValue = habit.goal && habit.goal.frequency === 'weekly'
+        ? 1
+        : Math.max(1, Math.floor(Number(habit.goal?.value) || 1));
+
+    let thisWeekTotal = 0;
+    weekDates.forEach(date => {
+        const val = habit.completions[window.formatDate(date)];
+        thisWeekTotal += window.getCompletionNumericValue(val, fallbackGoalValue);
+    });
+
+    let lastWeekTotal = 0;
+    lastWeekDates.forEach(date => {
+        const val = habit.completions[window.formatDate(date)];
+        lastWeekTotal += window.getCompletionNumericValue(val, fallbackGoalValue);
+    });
+
+    let monthTotal = 0;
+    Object.keys(habit.completions).forEach(dateStr => {
+        const date = new Date(dateStr);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+            const val = habit.completions[dateStr];
+            monthTotal += window.getCompletionNumericValue(val, fallbackGoalValue);
+        }
+    });
+
+    return { thisWeekTotal, lastWeekTotal, monthTotal };
+}
+
+// Geçen haftayla karşılaştırma rozetini üretir; geçen hafta sıfırsa rozet yok.
+function buildComparisonHtml(lastWeekTotal, thisWeekTotal) {
+    if (lastWeekTotal <= 0) return '';
+    const diff = thisWeekTotal - lastWeekTotal;
+    if (diff > 0) return `<span class="stat-trend up">+${diff}</span>`;
+    if (diff < 0) return `<span class="stat-trend down">${diff}</span>`;
+    return `<span class="stat-trend same">= 0</span>`;
+}
+
 function renderSummaryStats() {
     const container = document.getElementById('summaryStats');
     if (!container) return;
@@ -498,46 +537,8 @@ function renderSummaryStats() {
     }
 
     const statsHtml = habitsWithGoals.map(habit => {
-        const fallbackGoalValue = habit.goal && habit.goal.frequency === 'weekly'
-            ? 1
-            : Math.max(1, Math.floor(Number(habit.goal?.value) || 1));
-
-        // This week total
-        let thisWeekTotal = 0;
-        weekDates.forEach(date => {
-            const val = habit.completions[window.formatDate(date)];
-            thisWeekTotal += window.getCompletionNumericValue(val, fallbackGoalValue);
-        });
-
-        // Last week total
-        let lastWeekTotal = 0;
-        lastWeekDates.forEach(date => {
-            const val = habit.completions[window.formatDate(date)];
-            lastWeekTotal += window.getCompletionNumericValue(val, fallbackGoalValue);
-        });
-
-        // This month total
-        let monthTotal = 0;
-        Object.keys(habit.completions).forEach(dateStr => {
-            const date = new Date(dateStr);
-            if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-                const val = habit.completions[dateStr];
-                monthTotal += window.getCompletionNumericValue(val, fallbackGoalValue);
-            }
-        });
-
-        // Comparison indicator
-        const diff = thisWeekTotal - lastWeekTotal;
-        let comparisonHtml = '';
-        if (lastWeekTotal > 0) {
-            if (diff > 0) {
-                comparisonHtml = `<span class="stat-trend up">+${diff}</span>`;
-            } else if (diff < 0) {
-                comparisonHtml = `<span class="stat-trend down">${diff}</span>`;
-            } else {
-                comparisonHtml = `<span class="stat-trend same">= 0</span>`;
-            }
-        }
+        const totals = computeHabitStatTotals(habit, weekDates, lastWeekDates, currentMonth, currentYear);
+        const comparisonHtml = buildComparisonHtml(totals.lastWeekTotal, totals.thisWeekTotal);
 
         const safeStatHabitName = safeText(habit.name);
         const safeStatUnit = safeText(habit.goal.unit);
@@ -551,11 +552,11 @@ function renderSummaryStats() {
                 </div>
                 <div class="stat-values">
                     <div class="stat-value-item">
-                        <span class="stat-number">${thisWeekTotal}</span>
+                        <span class="stat-number">${totals.thisWeekTotal}</span>
                         <span class="stat-label">${safeStatUnit} bu hafta</span>
                     </div>
                     <div class="stat-value-item">
-                        <span class="stat-number">${monthTotal}</span>
+                        <span class="stat-number">${totals.monthTotal}</span>
                         <span class="stat-label">${safeStatUnit} bu ay</span>
                     </div>
                 </div>
@@ -568,21 +569,72 @@ function renderSummaryStats() {
 
 // ----- Render Habits (Main Habits Tab) -----
 
+function renderHabitEmptyState() {
+    return `
+        <div class="empty-state">
+            <div class="animated-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-svg-target"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            </div>
+            <h3>Henüz alışkanlık yok</h3>
+            <p>+ butonuna basarak ilk alışkanlığını ekle.</p>
+        </div>
+    `;
+}
+
+// Gün hücresinin görsel durumunu hesaplar (yan etkisiz, test edilebilir).
+function computeDayCellState(completionData, habit, dateStr, today) {
+    const isChecked = window.isCompletionDone(completionData);
+    const isToday = dateStr === today;
+    const hasGoal = habit.goal !== null;
+    const isWeeklyGoal = habit.goal && habit.goal.frequency === 'weekly';
+    const fallbackGoalValue = hasGoal && habit.goal.frequency === 'weekly'
+        ? 1
+        : Math.max(1, Math.floor(Number(habit.goal?.value) || 1));
+    const numericValue = window.getCompletionNumericValue(completionData, fallbackGoalValue);
+    const goalMet = hasGoal && !isWeeklyGoal && numericValue >= habit.goal.value;
+    // Kullanıcı isteği: hedef tuttuysa yeşil tik, tutmadıysa sarı gösterge
+    const displayValue = isChecked ? (isWeeklyGoal ? '✅' : (goalMet ? '✅' : '🔸')) : '';
+    return { isChecked, isToday, hasGoal, isWeeklyGoal, goalMet, displayValue };
+}
+
+// Gün hücresinin HTML'ini üretir (tek gün; week-calendar satırları bu fonksiyondan beslenir).
+function buildDayCellHtml(habit, date, dateStr, today, safeHabitId) {
+    const state = computeDayCellState(habit.completions[dateStr], habit, dateStr, today);
+    return `
+        <div class="day-cell">
+            <span class="day-name">${getDayName(date.getDay())}</span>
+            <div class="day-checkbox ${state.isChecked ? 'checked' : ''} ${state.goalMet ? 'goal-met' : ''} ${state.isToday ? 'today' : ''} ${state.hasGoal ? 'has-goal' : ''}" 
+                 onmousedown="window.handleDayMouseDown(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}')"
+                 onmouseup="window.handleDayMouseUp(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}')"
+                 onmouseleave="window.handleDayMouseLeave()"
+                 ontouchstart="window.handleDayMouseDown(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}', event)"
+                 ontouchend="window.handleDayMouseUp(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}')">
+                ${state.hasGoal && state.displayValue ? `<span class="day-value">${state.displayValue}</span>` : ''}
+            </div>
+            <span class="day-date">${date.getDate()}</span>
+        </div>
+    `;
+}
+
+// Hedef satırının HTML'ini üretir; hedef yoksa boş string.
+function buildHabitGoalHtml(habit, weekCompletions) {
+    if (!habit.goal) return '';
+    return `
+        <div class="habit-goal">
+            <span class="habit-goal-icon">Hedef</span>
+            <span class="habit-goal-text">${habit.goal.value} ${safeText(habit.goal.unit)} / ${habit.goal.frequency === 'daily' ? 'gün' : 'hafta'}</span>
+            <span class="habit-goal-progress">${weekCompletions}/7 gün</span>
+        </div>
+    `;
+}
+
 function renderHabits() {
     const container = document.getElementById('habitsContainer');
     const weekDates = window.getWeekDates(window.currentWeekOffset);
     const today = window.formatDate(new Date());
 
     if (window.appData.habits.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="animated-empty-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-svg-target"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-                </div>
-                <h3>Henüz alışkanlık yok</h3>
-                <p>+ butonuna basarak ilk alışkanlığını ekle.</p>
-            </div>
-        `;
+        container.innerHTML = renderHabitEmptyState();
         return;
     }
 
@@ -591,13 +643,8 @@ function renderHabits() {
         const safeHabitId = window.escapeJsSingleQuote(habit.id || '');
         const safeHabitName = safeText(habit.name);
         const safeHabitColor = window.sanitizeColor(habit.color);
-        const goalHtml = habit.goal ? `
-            <div class="habit-goal">
-                <span class="habit-goal-icon">Hedef</span>
-                <span class="habit-goal-text">${habit.goal.value} ${safeText(habit.goal.unit)} / ${habit.goal.frequency === 'daily' ? 'gün' : 'hafta'}</span>
-                <span class="habit-goal-progress">${weekCompletions}/7 gün</span>
-            </div>
-        ` : '';
+        const goalHtml = buildHabitGoalHtml(habit, weekCompletions);
+        const weekHtml = weekDates.map(date => buildDayCellHtml(habit, date, window.formatDate(date), today, safeHabitId)).join('');
 
         return `
         <div class="habit-card" data-id="${safeText(habit.id)}">
@@ -623,35 +670,7 @@ function renderHabits() {
             </div>
             ${goalHtml}
             <div class="week-calendar">
-                ${weekDates.map(date => {
-            const dateStr = window.formatDate(date);
-            const completionData = habit.completions[dateStr];
-            const isChecked = window.isCompletionDone(completionData);
-            const isToday = dateStr === today;
-            const hasGoal = habit.goal !== null;
-            const isWeeklyGoal = habit.goal && habit.goal.frequency === 'weekly';
-            const fallbackGoalValue = hasGoal && habit.goal.frequency === 'weekly'
-                ? 1
-                : Math.max(1, Math.floor(Number(habit.goal?.value) || 1));
-            const numericValue = window.getCompletionNumericValue(completionData, fallbackGoalValue);
-            const goalMet = hasGoal && !isWeeklyGoal && numericValue >= habit.goal.value;
-            // User request: Green tick if goal met, yellow indicator if not
-            const displayValue = isChecked ? (isWeeklyGoal ? '✅' : (goalMet ? '✅' : '🔸')) : '';
-            return `
-                        <div class="day-cell">
-                            <span class="day-name">${getDayName(date.getDay())}</span>
-                            <div class="day-checkbox ${isChecked ? 'checked' : ''} ${goalMet ? 'goal-met' : ''} ${isToday ? 'today' : ''} ${hasGoal ? 'has-goal' : ''}" 
-                                 onmousedown="window.handleDayMouseDown(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}')"
-                                 onmouseup="window.handleDayMouseUp(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}')"
-                                 onmouseleave="window.handleDayMouseLeave()"
-                                 ontouchstart="window.handleDayMouseDown(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}', event)"
-                                 ontouchend="window.handleDayMouseUp(window.decodeJsSingleQuote('${safeHabitId}'), '${dateStr}')">
-                                ${hasGoal && displayValue ? `<span class="day-value">${displayValue}</span>` : ''}
-                            </div>
-                            <span class="day-date">${date.getDate()}</span>
-                        </div>
-                    `;
-        }).join('')}
+                ${weekHtml}
             </div>
         </div>
     `}).join('');
@@ -1097,6 +1116,13 @@ window.updateHabit = updateHabit;
 window.deleteHabit = deleteHabit;
 window.quickToggleHabit = quickToggleHabit;
 window.toggleHabitCompletion = toggleHabitCompletion;
+window.computeCompletionDelta = computeCompletionDelta;
+window.computeDayCellState = computeDayCellState;
+window.buildComparisonHtml = buildComparisonHtml;
+window.computeHabitStatTotals = computeHabitStatTotals;
+window.buildDayCellHtml = buildDayCellHtml;
+window.buildHabitGoalHtml = buildHabitGoalHtml;
+window.renderHabitEmptyState = renderHabitEmptyState;
 window.handleDayMouseDown = handleDayMouseDown;
 window.handleDayMouseUp = handleDayMouseUp;
 window.handleDayMouseLeave = handleDayMouseLeave;
