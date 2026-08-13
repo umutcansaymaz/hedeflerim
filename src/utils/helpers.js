@@ -112,6 +112,12 @@ function truncateText(value, maxLength) {
     return text.length > maxLength ? text.slice(0, maxLength) : text;
 }
 
+function clampInt(value, min = 0, max = Number.MAX_SAFE_INTEGER) {
+    const lo = Number.isFinite(min) ? min : 0;
+    const hi = Number.isFinite(max) ? max : Number.MAX_SAFE_INTEGER;
+    return Math.max(lo, Math.min(hi, Math.floor(Number(value) || 0)));
+}
+
 function sanitizeImageUrl(url, fallback = 'https://via.placeholder.com/40x60?text=No+Cover') {
     const value = typeof url === 'string' ? url.trim() : '';
     if (/^https?:\/\//i.test(value) && value.length <= 2048) return value;
@@ -378,6 +384,7 @@ window.truncateText = truncateText;
 window.sanitizeImageUrl = sanitizeImageUrl;
 window.normalizeReminderTime = normalizeReminderTime;
 window.normalizeDateValue = normalizeDateValue;
+window.clampInt = clampInt;
 window.normalizeFocusLinkRef = normalizeFocusLinkRef;
 window.parseFocusLinkRef = parseFocusLinkRef;
 window.isNetworkOnline = isNetworkOnline;

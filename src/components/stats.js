@@ -311,6 +311,196 @@ function resetMood(date) {
 }
 
 // ===== SmartCoach AI Logic =====
+function collectHabitTrends(habits, recent14, todayStr) {
+    const weekdayStats = Array.from({ length: 7 }, () => ({ planned: 0, done: 0 }));
+    let planned14 = 0;
+    let done14 = 0;
+    let todayPlanned = 0;
+    let todayDone = 0;
+    let mostBehindWeeklyHabit = null;
+    let mostBehindWeeklyRemaining = 0;
+
+    habits.forEach(h => {
+        const completions = h.completions || {};
+        const hasDailyGoal = !h.goal || h.goal.frequency === 'daily';
+        const hasWeeklyGoal = h.goal && h.goal.frequency === 'weekly';
+
+        if (hasDailyGoal) {
+            recent14.forEach(date => {
+                const dateStr = window.formatDate(date);
+                const dayIndex = date.getDay();
+                const completed = window.isCompletionDone(completions[dateStr]);
+                weekdayStats[dayIndex].planned++;
+                weekdayStats[dayIndex].done += completed ? 1 : 0;
+                planned14++;
+                if (completed) done14++;
+                if (dateStr === todayStr) {
+                    todayPlanned++;
+                    if (completed) todayDone++;
+                }
+            });
+        }
+
+        if (hasWeeklyGoal) {
+            const target = Math.max(1, Math.floor(Number(h.goal.value) || 1));
+            const weekDates = window.getWeekDates(0).map(d => window.formatDate(d));
+            const weekDone = weekDates.filter(d => window.isCompletionDone(completions[d])).length;
+            const remaining = Math.max(0, target - weekDone);
+            if (remaining > mostBehindWeeklyRemaining) {
+                mostBehindWeeklyRemaining = remaining;
+                mostBehindWeeklyHabit = h;
+            }
+        }
+    });
+
+    return { weekdayStats, planned14, done14, todayPlanned, todayDone, mostBehindWeeklyHabit, mostBehindWeeklyRemaining };
+}
+
+function findWeakestDay(weekdayStats) {
+    let weakestDayIndex = -1;
+    let weakestDayRate = 101;
+    weekdayStats.forEach((stat, idx) => {
+        if (stat.planned >= 3) {
+            const rate = Math.round((stat.done / stat.planned) * 100);
+            if (rate < weakestDayRate) {
+                weakestDayRate = rate;
+                weakestDayIndex = idx;
+            }
+        }
+    });
+    return { weakestDayIndex, weakestDayRate };
+}
+
+// Dünden itibaren seri sayar (bugün henüz yapılmadıysa seri "beklemede"dir).
+// calculateStreak bugünden başladığı için streak>=3 && !doneToday hiç oluşamıyordu (ölü kod);
+// riskli alışkanlık uyarısının gerçek niyeti bu fonksiyonla sağlanır.
+function calculateStreakBeforeToday(completions) {
+    if (!completions) return 0;
+    let streak = 0;
+    const cursor = new Date();
+    cursor.setDate(cursor.getDate() - 1);
+    while (true) {
+        if (window.isCompletionDone(completions[window.formatDate(cursor)])) {
+            streak++;
+            cursor.setDate(cursor.getDate() - 1);
+        } else {
+            break;
+        }
+    }
+    return streak;
+}
+
+function findRiskyHabit(habits, todayStr) {
+    return habits
+        .map(h => ({
+            name: (h.name || 'Alışkanlık').trim(),
+            streak: calculateStreakBeforeToday(h.completions || {}),
+            doneToday: window.isCompletionDone((h.completions || {})[todayStr])
+        }))
+        .filter(item => item.streak >= 3 && !item.doneToday)
+        .sort((a, b) => b.streak - a.streak)[0];
+}
+
+function analyzeMoodTrend(moods, recent7, habits) {
+    let moodAverage = null;
+    let lowMoodMissRate = null;
+    const moodValues = [];
+    let lowMoodPlanned = 0;
+    let lowMoodMisses = 0;
+
+    recent7.forEach(date => {
+        const dateStr = window.formatDate(date);
+        const mood = moods[dateStr];
+        if (!mood || !Number.isFinite(Number(mood.value))) return;
+
+        const value = Number(mood.value);
+        moodValues.push(value);
+        if (value <= 2) {
+            habits.forEach(h => {
+                if (h.goal && h.goal.frequency === 'weekly') return;
+                lowMoodPlanned++;
+                if (!window.isCompletionDone((h.completions || {})[dateStr])) {
+                    lowMoodMisses++;
+                }
+            });
+        }
+    });
+
+    if (moodValues.length > 0) {
+        moodAverage = Number((moodValues.reduce((sum, v) => sum + v, 0) / moodValues.length).toFixed(1));
+    }
+    if (lowMoodPlanned > 0) {
+        lowMoodMissRate = Math.round((lowMoodMisses / lowMoodPlanned) * 100);
+    }
+    return { moodAverage, lowMoodMissRate };
+}
+
+function buildCoachInsights(c) {
+    const insights = [];
+
+    if (c.todayPlanned > 0 && c.todayDone < c.todayPlanned) {
+        const remaining = c.todayPlanned - c.todayDone;
+        insights.push({ priority: 100, text: 'Bugün ' + c.todayDone + '/' + c.todayPlanned + ' alışkanlık tamamlandı. Kalan ' + remaining + ' adımı bitirirsen günü güçlü kapatırsın.' });
+    }
+
+    if (c.riskSnapshot.score >= 60) {
+        insights.push({ priority: 92, text: 'Kaçırma riski %' + c.riskSnapshot.score + '. ' + c.riskSnapshot.reason + ' Akıllı hatırlatma saati: ' + c.riskSnapshot.suggestedTime + '.' });
+    }
+
+    if (c.riskyHabit) {
+        insights.push({ priority: 95, text: '"' + c.riskyHabit.name + '" için ' + c.riskyHabit.streak + ' günlük seri var. Bugün tek bir tekrar seriyi korur.' });
+    }
+
+    if (c.completionRate14 > 0) {
+        if (c.completionRate14 < 45) {
+            insights.push({ priority: 90, text: 'Son 14 gün başarı oranın %' + c.completionRate14 + '. Hedefleri geçici olarak küçültmek sürdürülebilirliği artırır.' });
+        } else if (c.completionRate14 < 70) {
+            insights.push({ priority: 78, text: 'Son 14 gün başarı oranın %' + c.completionRate14 + '. Düzen var; bugün tek bir ekstra tamamlamayla ivmeyi artırabilirsin.' });
+        } else if (c.completionRate14 >= 85) {
+            insights.push({ priority: 65, text: 'Son 14 gün başarı oranın %' + c.completionRate14 + '. Ritim çok iyi, aynı düzeni koru.' });
+        }
+    }
+
+    if (c.weakestDayIndex !== -1 && c.weakestDayRate < 60) {
+        insights.push({ priority: 74, text: c.dayNames[c.weakestDayIndex] + ' günleri başarı oranın %' + c.weakestDayRate + '. O gün için daha kısa bir minimum plan tanımla.' });
+    }
+
+    if (c.moodAverage !== null && c.moodAverage <= 2.6 && c.lowMoodMissRate !== null && c.lowMoodMissRate >= 55) {
+        insights.push({ priority: 72, text: 'Son 7 gün ruh hali ortalaman ' + c.moodAverage + '. Düşük enerjili günlerde kaçırma oranı %' + c.lowMoodMissRate + '; bu günler için mini hedef kullan.' });
+    }
+
+    if (c.mostBehindWeeklyHabit && c.mostBehindWeeklyRemaining > 0) {
+        const habitName = (c.mostBehindWeeklyHabit.name || 'Haftalık alışkanlık').trim();
+        insights.push({ priority: 70, text: '"' + habitName + '" haftalık hedefinde ' + c.mostBehindWeeklyRemaining + ' adım kaldı. Haftayı kapatmak için bugün bir adım ekle.' });
+    }
+
+    if (c.pendingTodos >= 5) {
+        insights.push({ priority: 60, text: 'Bekleyen ' + c.pendingTodos + ' görev var. Önce 10 dakikada bitecek 1 görevi tamamla.' });
+    }
+
+    if (c.readingBooks > 0) {
+        insights.push({ priority: 45, text: 'Okumakta olduğun ' + c.readingBooks + ' kitap var. Bugün kısa bir okuma seansı ivmeni korur.' });
+    }
+
+    return insights;
+}
+
+function buildActionPlan(riskyHabit, todayPlanned, todayDone, pendingTodos, readingBooks) {
+    let actionPlan = 'Bugün için plan: ';
+    if (riskyHabit) {
+        actionPlan += '"' + riskyHabit.name + '" alışkanlığını şimdi tamamla.';
+    } else if (todayPlanned > todayDone) {
+        actionPlan += 'kalan ' + (todayPlanned - todayDone) + ' adımdan en kolay olanla başla.';
+    } else if (pendingTodos > 0) {
+        actionPlan += 'listeden en kısa görevi şimdi bitir.';
+    } else if (readingBooks > 0) {
+        actionPlan += 'okuduğun kitaptan 10 dakika ilerle.';
+    } else {
+        actionPlan += 'yarın için tek net hedef yaz.';
+    }
+    return actionPlan;
+}
+
 const SmartCoach = {
     _typingTimer: null,
     _renderVersion: 0,
@@ -331,7 +521,6 @@ const SmartCoach = {
         const todos = window.appData.todos || [];
         const books = window.appData.books || [];
         const moods = window.appData.moods || {};
-        const insights = [];
         const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
         if (habits.length === 0) {
@@ -344,198 +533,37 @@ const SmartCoach = {
         const recent7 = this.getRecentDates(7);
         const riskSnapshot = window.computeMissRiskSnapshot(today);
 
-        const weekdayStats = Array.from({ length: 7 }, () => ({ planned: 0, done: 0 }));
-        let planned14 = 0;
-        let done14 = 0;
-        let todayPlanned = 0;
-        let todayDone = 0;
-        let mostBehindWeeklyHabit = null;
-        let mostBehindWeeklyRemaining = 0;
-
-        habits.forEach(h => {
-            const completions = h.completions || {};
-            const hasDailyGoal = !h.goal || h.goal.frequency === 'daily';
-            const hasWeeklyGoal = h.goal && h.goal.frequency === 'weekly';
-
-            if (hasDailyGoal) {
-                recent14.forEach(date => {
-                    const dateStr = window.formatDate(date);
-                    const dayIndex = date.getDay();
-                    const completed = window.isCompletionDone(completions[dateStr]);
-                    weekdayStats[dayIndex].planned++;
-                    weekdayStats[dayIndex].done += completed ? 1 : 0;
-                    planned14++;
-                    if (completed) done14++;
-                    if (dateStr === todayStr) {
-                        todayPlanned++;
-                        if (completed) todayDone++;
-                    }
-                });
-            }
-
-            if (hasWeeklyGoal) {
-                const target = Math.max(1, Math.floor(Number(h.goal.value) || 1));
-                const weekDates = window.getWeekDates(0).map(d => window.formatDate(d));
-                const weekDone = weekDates.filter(d => window.isCompletionDone(completions[d])).length;
-                const remaining = Math.max(0, target - weekDone);
-                if (remaining > mostBehindWeeklyRemaining) {
-                    mostBehindWeeklyRemaining = remaining;
-                    mostBehindWeeklyHabit = h;
-                }
-            }
-        });
-
-        const completionRate14 = planned14 > 0 ? Math.round((done14 / planned14) * 100) : 0;
-
-        let weakestDayIndex = -1;
-        let weakestDayRate = 101;
-        weekdayStats.forEach((stat, idx) => {
-            if (stat.planned >= 3) {
-                const rate = Math.round((stat.done / stat.planned) * 100);
-                if (rate < weakestDayRate) {
-                    weakestDayRate = rate;
-                    weakestDayIndex = idx;
-                }
-            }
-        });
-
-        const riskyHabit = habits
-            .map(h => ({
-                name: (h.name || 'Alışkanlık').trim(),
-                streak: window.calculateStreak(h.completions || {}),
-                doneToday: window.isCompletionDone((h.completions || {})[todayStr])
-            }))
-            .filter(item => item.streak >= 3 && !item.doneToday)
-            .sort((a, b) => b.streak - a.streak)[0];
-
-        let moodAverage = null;
-        let lowMoodMissRate = null;
-        const moodValues = [];
-        let lowMoodPlanned = 0;
-        let lowMoodMisses = 0;
-
-        recent7.forEach(date => {
-            const dateStr = window.formatDate(date);
-            const mood = moods[dateStr];
-            if (!mood || !Number.isFinite(Number(mood.value))) return;
-
-            const value = Number(mood.value);
-            moodValues.push(value);
-            if (value <= 2) {
-                habits.forEach(h => {
-                    if (h.goal && h.goal.frequency === 'weekly') return;
-                    lowMoodPlanned++;
-                    if (!window.isCompletionDone((h.completions || {})[dateStr])) {
-                        lowMoodMisses++;
-                    }
-                });
-            }
-        });
-
-        if (moodValues.length > 0) {
-            moodAverage = Number((moodValues.reduce((sum, v) => sum + v, 0) / moodValues.length).toFixed(1));
-        }
-        if (lowMoodPlanned > 0) {
-            lowMoodMissRate = Math.round((lowMoodMisses / lowMoodPlanned) * 100);
-        }
+        const trends = collectHabitTrends(habits, recent14, todayStr);
+        const weakestDay = findWeakestDay(trends.weekdayStats);
+        const riskyHabit = findRiskyHabit(habits, todayStr);
+        const moodTrend = analyzeMoodTrend(moods, recent7, habits);
+        const completionRate14 = trends.planned14 > 0 ? Math.round((trends.done14 / trends.planned14) * 100) : 0;
 
         const pendingTodos = todos.filter(t => !t.completed).length;
         const readingBooks = books.filter(b => window.normalizeBookStatus(b) === 'reading').length;
 
-        if (todayPlanned > 0 && todayDone < todayPlanned) {
-            const remaining = todayPlanned - todayDone;
-            insights.push({
-                priority: 100,
-                text: 'Bugün ' + todayDone + '/' + todayPlanned + ' alışkanlık tamamlandı. Kalan ' + remaining + ' adımı bitirirsen günü güçlü kapatırsın.'
-            });
-        }
-
-        if (riskSnapshot.score >= 60) {
-            insights.push({
-                priority: 92,
-                text: 'Kaçırma riski %' + riskSnapshot.score + '. ' + riskSnapshot.reason + ' Akıllı hatırlatma saati: ' + riskSnapshot.suggestedTime + '.'
-            });
-        }
-
-        if (riskyHabit) {
-            insights.push({
-                priority: 95,
-                text: '"' + riskyHabit.name + '" için ' + riskyHabit.streak + ' günlük seri var. Bugün tek bir tekrar seriyi korur.'
-            });
-        }
-
-        if (completionRate14 > 0) {
-            if (completionRate14 < 45) {
-                insights.push({
-                    priority: 90,
-                    text: 'Son 14 gün başarı oranın %' + completionRate14 + '. Hedefleri geçici olarak küçültmek sürdürülebilirliği artırır.'
-                });
-            } else if (completionRate14 < 70) {
-                insights.push({
-                    priority: 78,
-                    text: 'Son 14 gün başarı oranın %' + completionRate14 + '. Düzen var; bugün tek bir ekstra tamamlamayla ivmeyi artırabilirsin.'
-                });
-            } else if (completionRate14 >= 85) {
-                insights.push({
-                    priority: 65,
-                    text: 'Son 14 gün başarı oranın %' + completionRate14 + '. Ritim çok iyi, aynı düzeni koru.'
-                });
-            }
-        }
-
-        if (weakestDayIndex !== -1 && weakestDayRate < 60) {
-            insights.push({
-                priority: 74,
-                text: dayNames[weakestDayIndex] + ' günleri başarı oranın %' + weakestDayRate + '. O gün için daha kısa bir minimum plan tanımla.'
-            });
-        }
-
-        if (moodAverage !== null && moodAverage <= 2.6 && lowMoodMissRate !== null && lowMoodMissRate >= 55) {
-            insights.push({
-                priority: 72,
-                text: 'Son 7 gün ruh hali ortalaman ' + moodAverage + '. Düşük enerjili günlerde kaçırma oranı %' + lowMoodMissRate + '; bu günler için mini hedef kullan.'
-            });
-        }
-
-        if (mostBehindWeeklyHabit && mostBehindWeeklyRemaining > 0) {
-            const habitName = (mostBehindWeeklyHabit.name || 'Haftalık alışkanlık').trim();
-            insights.push({
-                priority: 70,
-                text: '"' + habitName + '" haftalık hedefinde ' + mostBehindWeeklyRemaining + ' adım kaldı. Haftayı kapatmak için bugün bir adım ekle.'
-            });
-        }
-
-        if (pendingTodos >= 5) {
-            insights.push({
-                priority: 60,
-                text: 'Bekleyen ' + pendingTodos + ' görev var. Önce 10 dakikada bitecek 1 görevi tamamla.'
-            });
-        }
-
-        if (readingBooks > 0) {
-            insights.push({
-                priority: 45,
-                text: 'Okumakta olduğun ' + readingBooks + ' kitap var. Bugün kısa bir okuma seansı ivmeni korur.'
-            });
-        }
+        const insights = buildCoachInsights({
+            todayPlanned: trends.todayPlanned,
+            todayDone: trends.todayDone,
+            riskSnapshot,
+            riskyHabit,
+            completionRate14,
+            weakestDayIndex: weakestDay.weakestDayIndex,
+            weakestDayRate: weakestDay.weakestDayRate,
+            moodAverage: moodTrend.moodAverage,
+            lowMoodMissRate: moodTrend.lowMoodMissRate,
+            mostBehindWeeklyHabit: trends.mostBehindWeeklyHabit,
+            mostBehindWeeklyRemaining: trends.mostBehindWeeklyRemaining,
+            pendingTodos,
+            readingBooks,
+            dayNames
+        });
 
         insights.sort((a, b) => b.priority - a.priority);
         const primary = insights[0]?.text || 'Bugün düzenini koruman için tek bir küçük adım yeterli.';
         const secondary = insights[1]?.text;
 
-        let actionPlan = 'Bugün için plan: ';
-        if (riskyHabit) {
-            actionPlan += '"' + riskyHabit.name + '" alışkanlığını şimdi tamamla.';
-        } else if (todayPlanned > todayDone) {
-            actionPlan += 'kalan ' + (todayPlanned - todayDone) + ' adımdan en kolay olanla başla.';
-        } else if (pendingTodos > 0) {
-            actionPlan += 'listeden en kısa görevi şimdi bitir.';
-        } else if (readingBooks > 0) {
-            actionPlan += 'okuduğun kitaptan 10 dakika ilerle.';
-        } else {
-            actionPlan += 'yarın için tek net hedef yaz.';
-        }
-
+        const actionPlan = buildActionPlan(riskyHabit, trends.todayPlanned, trends.todayDone, pendingTodos, readingBooks);
         return secondary ? (primary + ' ' + secondary + ' ' + actionPlan) : (primary + ' ' + actionPlan);
     },
 

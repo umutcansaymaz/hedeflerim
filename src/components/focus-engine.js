@@ -213,23 +213,21 @@ function normalizeGoalUnitForFocusBridge(unit) {
     return String(unit || '').trim().toLocaleLowerCase('tr-TR');
 }
 
+// Odak seansı → alışkanlık değeri köprüsünde desteklenen birimler (saniye cinsinden)
+const FOCUS_BRIDGE_UNIT_SECONDS = Object.freeze({
+    'saat': 3600, 'hour': 3600, 'hours': 3600, 'h': 3600,
+    'dakika': 60, 'dk': 60, 'minute': 60, 'minutes': 60, 'min': 60,
+    'gün': 86400, 'gun': 86400, 'day': 86400, 'days': 86400
+});
+
 function convertFocusWorkSecToHabitValue(workSec, habit) {
     const safeWorkSec = Math.max(0, Number(workSec) || 0);
     if (safeWorkSec <= 0) return 0;
     const goal = habit?.goal && typeof habit.goal === 'object' ? habit.goal : null;
     if (!goal || goal.frequency !== 'daily') return 1;
 
-    const unit = normalizeGoalUnitForFocusBridge(goal.unit);
-    if (unit === 'saat' || unit === 'hour' || unit === 'hours' || unit === 'h') {
-        return safeWorkSec / 3600;
-    }
-    if (unit === 'dakika' || unit === 'dk' || unit === 'minute' || unit === 'minutes' || unit === 'min') {
-        return safeWorkSec / 60;
-    }
-    if (unit === 'gün' || unit === 'gun' || unit === 'day' || unit === 'days') {
-        return safeWorkSec / 86400;
-    }
-    return 1;
+    const secondsPerUnit = FOCUS_BRIDGE_UNIT_SECONDS[normalizeGoalUnitForFocusBridge(goal.unit)];
+    return secondsPerUnit ? safeWorkSec / secondsPerUnit : 1;
 }
 
 function applyFocusSessionLinkProgress(linkMeta, workSec, endedAtMs) {
@@ -454,6 +452,20 @@ const FocusTimer = (() => {
         };
     }
 
+    function resetToIdleValues(s) {
+        s.sessionId = null;
+        s.startedAtMs = null;
+        s.lastTickAtMs = null;
+        s.workAccMs = 0;
+        s.breakAccMs = 0;
+        s.cyclesCompleted = 0;
+        s.phaseType = 'work';
+        s.phaseEndsAtMs = null;
+        s.phaseRemainingMs = null;
+        s.interruptions = 0;
+        s.linkRef = prefs.linkRef;
+    }
+
     function normState(input) {
         const base = idleState();
         const s = input && typeof input === 'object' ? { ...base, ...input } : base;
@@ -462,32 +474,22 @@ const FocusTimer = (() => {
         s.label = window.truncateText(typeof s.label === 'string' ? s.label : prefs.label, 80) || prefs.label;
         s.pomodoroPresetId = normalizePomodoroPresetId(s.pomodoroPresetId);
         s.autoAdvance = s.autoAdvance !== false;
-        s.countdownSec = Math.max(0, Math.min(24 * 60 * 60, Math.floor(Number(s.countdownSec) || prefs.countdownSec)));
+        s.countdownSec = window.clampInt(s.countdownSec, 0, 24 * 60 * 60) || prefs.countdownSec;
 
         s.sessionId = typeof s.sessionId === 'string' && s.sessionId ? s.sessionId : null;
         s.startedAtMs = Number.isFinite(Number(s.startedAtMs)) ? Number(s.startedAtMs) : null;
         s.lastTickAtMs = Number.isFinite(Number(s.lastTickAtMs)) ? Number(s.lastTickAtMs) : null;
-        s.workAccMs = Math.max(0, Math.floor(Number(s.workAccMs) || 0));
-        s.breakAccMs = Math.max(0, Math.floor(Number(s.breakAccMs) || 0));
-        s.cyclesCompleted = Math.max(0, Math.floor(Number(s.cyclesCompleted) || 0));
+        s.workAccMs = window.clampInt(s.workAccMs, 0);
+        s.breakAccMs = window.clampInt(s.breakAccMs, 0);
+        s.cyclesCompleted = window.clampInt(s.cyclesCompleted, 0);
         s.phaseType = s.phaseType === 'shortBreak' || s.phaseType === 'longBreak' ? s.phaseType : 'work';
         s.phaseEndsAtMs = Number.isFinite(Number(s.phaseEndsAtMs)) ? Number(s.phaseEndsAtMs) : null;
         s.phaseRemainingMs = Number.isFinite(Number(s.phaseRemainingMs)) ? Math.max(0, Number(s.phaseRemainingMs)) : null;
-        s.interruptions = Math.max(0, Math.floor(Number(s.interruptions) || 0));
+        s.interruptions = window.clampInt(s.interruptions, 0);
         s.linkRef = window.normalizeFocusLinkRef(s.linkRef);
 
         if (s.status === 'idle') {
-            s.sessionId = null;
-            s.startedAtMs = null;
-            s.lastTickAtMs = null;
-            s.workAccMs = 0;
-            s.breakAccMs = 0;
-            s.cyclesCompleted = 0;
-            s.phaseType = 'work';
-            s.phaseEndsAtMs = null;
-            s.phaseRemainingMs = null;
-            s.interruptions = 0;
-            s.linkRef = prefs.linkRef;
+            resetToIdleValues(s);
         }
 
         if (s.status === 'running' && !s.lastTickAtMs) {
@@ -564,19 +566,16 @@ const FocusTimer = (() => {
         return currentWorkSec;
     }
 
-    function finalizeAndReset(endedAtMs, reason = 'stop', options = {}) {
-        if (reason !== 'auto') stopAlarmLoop();
-        const endedAt = Number.isFinite(Number(endedAtMs)) ? Number(endedAtMs) : Date.now();
+    function buildFocusSessionRecord(endedAt) {
         const startedAt = Number.isFinite(Number(rt?.startedAtMs)) ? Number(rt.startedAtMs) : endedAt;
         const workSec = Math.floor((rt?.workAccMs || 0) / 1000);
+        if (workSec < FOCUS_SESSION_MIN_SAVE_SEC) return null;
         const breakSec = Math.floor((rt?.breakAccMs || 0) / 1000);
-        const cycles = Math.max(0, Math.floor(Number(rt?.cyclesCompleted) || 0));
-        const playAlarm = options?.playAlarm !== false;
-
+        const cycles = window.clampInt(rt?.cyclesCompleted, 0);
         const mode = rt?.mode === 'stopwatch' || rt?.mode === 'countdown' ? rt.mode : 'pomodoro';
         const label = window.truncateText(typeof rt?.label === 'string' ? rt.label : prefs.label, 80) || prefs.label;
         const sessionId = typeof rt?.sessionId === 'string' && rt.sessionId ? rt.sessionId : `focus_${window.generateId()}`;
-        const interruptions = Math.max(0, Math.floor(Number(rt?.interruptions) || 0));
+        const interruptions = window.clampInt(rt?.interruptions, 0);
         const plannedWorkSec = resolveCurrentPlannedWorkSec(rt, mode, workSec, cycles);
         const completionPct = computeFocusCompletionPct(workSec, plannedWorkSec);
         const deepWorkScore = computeFocusDeepWorkScore(workSec, interruptions, completionPct, mode);
@@ -587,13 +586,8 @@ const FocusTimer = (() => {
         else if (mode === 'countdown') preset = window.formatFocusClock(prefs.countdownSec, { showHours: prefs.countdownSec >= 3600 });
         else preset = 'Kronometre';
 
-        if (reason === 'auto' && playAlarm) {
-            const kind = rt?.mode === 'countdown' ? 'workEnd' : 'default';
-            startAlarmLoop(kind);
-        }
-
-        if (workSec >= FOCUS_SESSION_MIN_SAVE_SEC && reason !== 'discard') {
-            const session = {
+        return {
+            session: {
                 id: sessionId,
                 label,
                 mode,
@@ -612,31 +606,36 @@ const FocusTimer = (() => {
                 linkedLabel: linkMeta.label || '',
                 createdAt: new Date(startedAt).toISOString(),
                 updatedAt: new Date(endedAt).toISOString()
-            };
+            },
+            linkMeta,
+            workSec
+        };
+    }
 
-            window.appData.focusSessions = Array.isArray(window.appData.focusSessions) ? window.appData.focusSessions : [];
-            const idx = window.appData.focusSessions.findIndex(item => item && item.id === session.id);
-            if (idx === -1) {
-                window.appData.focusSessions.unshift(session);
-            } else {
-                const old = window.appData.focusSessions[idx];
-                const oldTime = Date.parse(old?.updatedAt || old?.endedAt || old?.createdAt || '');
-                const newTime = Date.parse(session.updatedAt);
-                if (!Number.isFinite(oldTime) || newTime >= oldTime) window.appData.focusSessions[idx] = session;
-            }
-            const linkedProgressUpdated = applyFocusSessionLinkProgress(linkMeta, workSec, endedAt);
-            window.saveData();
-            window.showToast(`Odak seansı kaydedildi: ${window.formatFocusDuration(workSec)}`);
-            if (linkedProgressUpdated) {
-                const activeTab = window.getActiveTabId();
-                if (activeTab === 'dashboard' || activeTab === 'habits') {
-                    window.renderActiveTab();
-                }
-            }
-        } else if (reason !== 'auto') {
-            window.showToast('2 dakikanın altındaki seanslar kaydedilmedi');
+    function upsertFocusSession(record, endedAt) {
+        const { session, linkMeta, workSec } = record;
+        window.appData.focusSessions = Array.isArray(window.appData.focusSessions) ? window.appData.focusSessions : [];
+        const idx = window.appData.focusSessions.findIndex(item => item && item.id === session.id);
+        if (idx === -1) {
+            window.appData.focusSessions.unshift(session);
+        } else {
+            const old = window.appData.focusSessions[idx];
+            const oldTime = Date.parse(old?.updatedAt || old?.endedAt || old?.createdAt || '');
+            const newTime = Date.parse(session.updatedAt);
+            if (!Number.isFinite(oldTime) || newTime >= oldTime) window.appData.focusSessions[idx] = session;
         }
+        const linkedProgressUpdated = applyFocusSessionLinkProgress(linkMeta, workSec, endedAt);
+        window.saveData();
+        window.showToast(`Odak seansı kaydedildi: ${window.formatFocusDuration(workSec)}`);
+        if (linkedProgressUpdated) {
+            const activeTab = window.getActiveTabId();
+            if (activeTab === 'dashboard' || activeTab === 'habits') {
+                window.renderActiveTab();
+            }
+        }
+    }
 
+    function resetTimerToIdle() {
         rt = normState(idleState());
         stopTicker();
         persistRuntime(true);
@@ -644,41 +643,53 @@ const FocusTimer = (() => {
         window.refreshFocusWeeklySummaryIfVisible();
     }
 
-    function tick(isRestore = false) {
-        if (!rt || rt.status !== 'running') return;
-        const now = Date.now();
-        const last = Number.isFinite(Number(rt.lastTickAtMs)) ? Number(rt.lastTickAtMs) : now;
-        if (now <= last) return;
+    function finalizeAndReset(endedAtMs, reason = 'stop', options = {}) {
+        if (reason !== 'auto') stopAlarmLoop();
+        const endedAt = Number.isFinite(Number(endedAtMs)) ? Number(endedAtMs) : Date.now();
+        const playAlarm = options?.playAlarm !== false;
 
-        if (rt.mode === 'stopwatch') {
-            rt.workAccMs += now - last;
-            rt.lastTickAtMs = now;
-            persistRuntime(false);
-            window.updateFocusTimerUi();
-            return;
+        if (reason === 'auto' && playAlarm) {
+            const kind = rt?.mode === 'countdown' ? 'workEnd' : 'default';
+            startAlarmLoop(kind);
         }
 
-        if (rt.mode === 'countdown') {
-            if (!Number.isFinite(Number(rt.phaseEndsAtMs))) {
-                rt.phaseEndsAtMs = last + Math.max(0, Math.floor(rt.countdownSec) * 1000);
-            }
-            const endAt = Number(rt.phaseEndsAtMs);
-            const segmentEnd = Math.min(now, endAt);
-            if (segmentEnd > last) {
-                rt.workAccMs += segmentEnd - last;
-                rt.lastTickAtMs = segmentEnd;
-            }
-            if (now >= endAt) {
-                const shouldAlert = isRestore ? shouldPlayFocusSound(endAt, now) : true;
-                finalizeAndReset(endAt, 'auto', { playAlarm: shouldAlert });
-                return;
-            }
-            persistRuntime(false);
-            window.updateFocusTimerUi();
-            return;
+        const record = buildFocusSessionRecord(endedAt);
+        if (record && reason !== 'discard') {
+            upsertFocusSession(record, endedAt);
+        } else if (reason !== 'auto') {
+            window.showToast('2 dakikanın altındaki seanslar kaydedilmedi');
         }
 
-        // Pomodoro
+        resetTimerToIdle();
+    }
+
+    function tickStopwatch(now, last) {
+        rt.workAccMs += now - last;
+        rt.lastTickAtMs = now;
+        persistRuntime(false);
+        window.updateFocusTimerUi();
+    }
+
+    function tickCountdown(now, last, isRestore) {
+        if (!Number.isFinite(Number(rt.phaseEndsAtMs))) {
+            rt.phaseEndsAtMs = last + Math.max(0, Math.floor(rt.countdownSec) * 1000);
+        }
+        const endAt = Number(rt.phaseEndsAtMs);
+        const segmentEnd = Math.min(now, endAt);
+        if (segmentEnd > last) {
+            rt.workAccMs += segmentEnd - last;
+            rt.lastTickAtMs = segmentEnd;
+        }
+        if (now >= endAt) {
+            const shouldAlert = isRestore ? shouldPlayFocusSound(endAt, now) : true;
+            finalizeAndReset(endAt, 'auto', { playAlarm: shouldAlert });
+            return;
+        }
+        persistRuntime(false);
+        window.updateFocusTimerUi();
+    }
+
+    function tickPomodoro(now, isRestore) {
         while (rt.status === 'running' && rt.lastTickAtMs < now) {
             if (!Number.isFinite(Number(rt.phaseEndsAtMs))) {
                 rt.phaseEndsAtMs = rt.lastTickAtMs + pomodoroPhaseTotalMs(rt);
@@ -716,6 +727,17 @@ const FocusTimer = (() => {
 
         persistRuntime(false);
         window.updateFocusTimerUi();
+    }
+
+    function tick(isRestore = false) {
+        if (!rt || rt.status !== 'running') return;
+        const now = Date.now();
+        const last = Number.isFinite(Number(rt.lastTickAtMs)) ? Number(rt.lastTickAtMs) : now;
+        if (now <= last) return;
+
+        if (rt.mode === 'stopwatch') return tickStopwatch(now, last);
+        if (rt.mode === 'countdown') return tickCountdown(now, last, isRestore);
+        tickPomodoro(now, isRestore);
     }
 
     function ensureIdleForSettings() {

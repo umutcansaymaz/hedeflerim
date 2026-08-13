@@ -163,12 +163,12 @@ function normalizeFocusSessionsArray(sessions) {
         item.label = window.truncateText(typeof item.label === 'string' ? item.label : 'Ders', 80);
         item.mode = item.mode === 'stopwatch' || item.mode === 'countdown' ? item.mode : 'pomodoro';
         item.preset = window.truncateText(typeof item.preset === 'string' ? item.preset : '', 24);
-        item.workSec = Math.max(0, Math.floor(Number(item.workSec) || 0));
-        item.breakSec = Math.max(0, Math.floor(Number(item.breakSec) || 0));
-        item.interruptions = Math.max(0, Math.floor(Number(item.interruptions) || 0));
-        item.plannedWorkSec = Math.max(0, Math.floor(Number(item.plannedWorkSec) || item.workSec || 0));
-        item.completionPct = Math.max(0, Math.min(200, Math.round(Number(item.completionPct) || 0)));
-        item.deepWorkScore = Math.max(0, Math.min(100, Math.round(Number(item.deepWorkScore) || 0)));
+        item.workSec = window.clampInt(item.workSec, 0);
+        item.breakSec = window.clampInt(item.breakSec, 0);
+        item.interruptions = window.clampInt(item.interruptions, 0);
+        item.plannedWorkSec = window.clampInt(item.plannedWorkSec, 0) || item.workSec || 0;
+        item.completionPct = window.clampInt(Math.round(Number(item.completionPct) || 0), 0, 200);
+        item.deepWorkScore = window.clampInt(Math.round(Number(item.deepWorkScore) || 0), 0, 100);
         item.linkedType = item.linkedType === 'habit' || item.linkedType === 'todo' ? item.linkedType : '';
         item.linkedId = window.truncateText(typeof item.linkedId === 'string' ? item.linkedId : '', 120);
         item.linkedLabel = window.truncateText(typeof item.linkedLabel === 'string' ? item.linkedLabel : '', 160);
@@ -176,7 +176,7 @@ function normalizeFocusSessionsArray(sessions) {
         item.endedAt = window.normalizeDateValue(item.endedAt, item.startedAt);
         item.createdAt = window.normalizeDateValue(item.createdAt, item.startedAt);
         item.updatedAt = window.normalizeDateValue(item.updatedAt, item.endedAt);
-        item.cycles = Math.max(0, Math.floor(Number(item.cycles) || 0));
+        item.cycles = window.clampInt(item.cycles, 0);
         return item;
     }) : [];
 }
