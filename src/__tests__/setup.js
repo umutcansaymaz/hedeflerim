@@ -125,7 +125,7 @@ const mockAuth = {
   getRedirectResult: vi.fn(() => Promise.resolve({ user: null })),
   setPersistence: vi.fn(() => Promise.resolve()),
   currentUser: { uid: 'test-uid', email: 'test@test.com', displayName: 'Test', photoURL: '' },
-  GoogleAuthProvider: vi.fn(() => ({}))
+  GoogleAuthProvider: vi.fn(function () { return {}; })
 };
 
 const mockAuthFn = vi.fn(() => mockAuth);

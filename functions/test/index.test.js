@@ -11,7 +11,7 @@ vi.mock("firebase-admin", () => ({
   firestore: { FieldValue: { serverTimestamp: () => ({}) } }
 }));
 
-vi.mock("firebase-functions", () => ({
+vi.mock("firebase-functions/v1", () => ({
   runWith: () => ({
     pubsub: {
       schedule: () => ({

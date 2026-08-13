@@ -35,9 +35,10 @@ beforeAll(() => {
   window.navigator = { ...globalThis.navigator, standalone: false };
   window.showToast = vi.fn();
   // auth.js'in kullandığı GoogleAuthProvider mock'u: setCustomParameters destekli
-  globalThis.GoogleAuthProvider = vi.fn(() => ({
-    setCustomParameters: vi.fn()
-  }));
+  // (function gerekli: `new GoogleAuthProvider()` çağrılıyor — arrow constructor olamaz)
+  globalThis.GoogleAuthProvider = vi.fn(function () {
+    return { setCustomParameters: vi.fn() };
+  });
 });
 
 afterEach(() => {

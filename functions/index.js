@@ -6,7 +6,9 @@
 // trigger olarak yüklemeye çalışır.
 // ============================================================
 
-const functions = require("firebase-functions");
+// firebase-functions v6+: gen1 API 'firebase-functions/v1' path'inden gelir.
+// (Spark planında gen1 şart; gen2 Cloud Run Blaze ister.)
+const functions = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const webpush = require("web-push");

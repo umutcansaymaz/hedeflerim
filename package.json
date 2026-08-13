@@ -11,8 +11,8 @@
     "test:e2e:visual": "playwright test test/e2e/visual.spec.js"
   },
   "devDependencies": {
-    "vitest": "^1.6.0",
     "@playwright/test": "^1.44.0",
-    "serve": "^14.2.0"
+    "serve": "^14.2.0",
+    "vitest": "^4.1.10"
   }
 }
