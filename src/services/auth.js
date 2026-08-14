@@ -161,8 +161,23 @@ function updateAuthUI(user) {
         if (authScreen) authScreen.classList.remove('hidden');
         var hintEl = document.getElementById('authHint');
         if (hintEl) {
-            var allowed = (window.ALLOWED_EMAILS && window.ALLOWED_EMAILS.length) ? window.ALLOWED_EMAILS.join(', ') : '';
-            hintEl.textContent = allowed ? ('İzinli hesaplar: ' + allowed) : '';
+            hintEl.textContent = '';
+            var allowed = (window.ALLOWED_EMAILS && window.ALLOWED_EMAILS.length) ? window.ALLOWED_EMAILS : [];
+            if (allowed.length) {
+                var hintLabel = document.createElement('span');
+                hintLabel.className = 'auth-hint-label';
+                hintLabel.textContent = 'İzinli hesaplar';
+                hintEl.appendChild(hintLabel);
+                var chipsWrap = document.createElement('div');
+                chipsWrap.className = 'auth-chips';
+                allowed.forEach(function (email) {
+                    var chip = document.createElement('span');
+                    chip.className = 'auth-chip';
+                    chip.textContent = email;
+                    chipsWrap.appendChild(chip);
+                });
+                hintEl.appendChild(chipsWrap);
+            }
         }
         if (headerUser) headerUser.classList.add('hidden');
     }
